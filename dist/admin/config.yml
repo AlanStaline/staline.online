@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: yourusername/personal-tech-blog
+  repo: AlanStaline/staline.online
   branch: main
   auth_type: pkce
 
