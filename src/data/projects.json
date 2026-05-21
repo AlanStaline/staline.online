@@ -5,8 +5,8 @@
     "description": "基于 Astro + Tailwind CSS 构建的现代化技术博客",
     "image": "/static/images/project1.jpg",
     "tags": ["Astro", "Tailwind CSS", "Markdown"],
-    "github": "https://github.com/yourusername/blog",
-    "demo": "https://yourusername.github.io/blog",
+    "github": "https://github.com/AlanStaline/staline.online",
+    "demo": "https://github.com/AlanStaline/staline.online",
     "featured": true
   },
   {
@@ -15,7 +15,7 @@
     "description": "一组实用的开发工具和脚本",
     "image": "/static/images/project2.jpg",
     "tags": ["Node.js", "CLI", "Automation"],
-    "github": "https://github.com/yourusername/tools",
+    "github": "https://github.com/AlanStaline/tools",
     "demo": "",
     "featured": false
   },
@@ -25,7 +25,7 @@
     "description": "高性能的 API 网关和路由管理平台",
     "image": "/static/images/project3.jpg",
     "tags": ["Go", "Docker", "Microservices"],
-    "github": "https://github.com/yourusername/api-gateway",
+    "github": "https://github.com/AlanStaline/api-gateway",
     "demo": "https://api-demo.example.com",
     "featured": true
   }

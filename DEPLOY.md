@@ -8,7 +8,7 @@
 git init
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/yourusername/personal-tech-blog.git
+git remote add origin https://github.com/AlanStaline/staline.online.git
 git branch -M main
 git push -u origin main
 ```
@@ -25,7 +25,7 @@ git push -u origin main
 Add a CNAME file:
 
 ```
-yourdomain.com
+staline.online
 ```
 
 ## GitHub Actions CI/CD
@@ -78,7 +78,7 @@ Edit `admin/config.yml`:
 ```yaml
 backend:
   name: github
-  repo: yourusername/personal-tech-blog
+  repo: AlanStaline/staline.online
   branch: main
 ```
 
@@ -93,7 +93,7 @@ backend:
 Create `.env`:
 
 ```
-PUBLIC_SITE_URL=https://yourusername.github.io/personal-tech-blog
+PUBLIC_SITE_URL=https://github.com/AlanStaline/staline.online
 ```
 
 ## Build Config
@@ -102,7 +102,7 @@ PUBLIC_SITE_URL=https://yourusername.github.io/personal-tech-blog
 
 ```js
 export default defineConfig({
-  site: 'https://yourusername.github.io/personal-tech-blog'
+  site: 'https://github.com/AlanStaline/staline.online'
 });
 ```
 
