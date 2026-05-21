@@ -1,0 +1,51 @@
+---
+import Layout from '../layouts/Layout.astro';
+import config from '../data/config.json';
+import projectsData from '../data/projects.json';
+---
+<Layout title={`项目 - ${config.site.title}`} description="项目展示">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="mb-12 animate-fade-in">
+      <h1 class="text-4xl font-bold mb-4">项目展示</h1>
+      <p class="text-text-muted text-lg">我的开源项目和技术作品</p>
+    </header>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projectsData.map((project, i) => (
+        <div class="group p-6 bg-surface-alt rounded-xl border border-border hover:shadow-xl transition-all duration-300 animate-slide-up" style={`animation-delay: ${i * 0.1}s`}>
+          <div class="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg mb-4 flex items-center justify-center">
+            <i class="fas fa-code text-4xl text-primary/40"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition">{project.title}</h3>
+          <p class="text-text-muted text-sm mb-4">{project.description}</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            {project.tags.map(tag => (
+              <span key={tag} class="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div class="flex gap-3">
+            {project.github && (
+              <a href={project.github} class="text-text-muted hover:text-primary transition" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-github text-lg"></i>
+              </a>
+            )}
+            {project.demo && (
+              <a href={project.demo} class="text-text-muted hover:text-primary transition" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-external-link-alt text-lg"></i>
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <nav class="mt-12 pt-8 border-t border-border">
+      <a href="/" class="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition">
+        <i class="fas fa-home"></i>
+        返回首页
+      </a>
+    </nav>
+  </div>
+</Layout>

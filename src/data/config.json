@@ -1,0 +1,27 @@
+{
+  "site": {
+    "title": "Tech Blog",
+    "subtitle": "探索技术的无限可能",
+    "description": "个人技术博客与作品集",
+    "author": "Alan",
+    "email": "staline@163.com",
+    "github": "https://github.com/AlanStaline"
+    //"twitter": "https://twitter.com/AlanStaline"
+  },
+  "social": {
+    "github": "https://github.com/AlanStaline",
+    //"twitter": "https://twitter.com/AlanStaline",
+    //"linkedin": "https://linkedin.com/in/AlanStaline",
+    "email": "staline@163.com"
+  },
+  "nav": [
+    { "label": "首页", "href": "/" },
+    { "label": "博客", "href": "/blog/" },
+    { "label": "项目", "href": "/projects/" },
+    { "label": "关于", "href": "/about/" }
+  ],
+  "theme": {
+    "primaryColor": "#3b82f6",
+    "accentColor": "#ec4899"
+  }
+}

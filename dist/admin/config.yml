@@ -1,0 +1,23 @@
+backend:
+  name: github
+  repo: yourusername/personal-tech-blog
+  branch: main
+  auth_type: pkce
+
+media_folder: "public/images"
+public_folder: "/images"
+
+collections:
+  - label: "Blog Posts"
+    name: "blog"
+    folder: "src/data/articles"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Date", name: "date", widget: "datetime" }
+      - { label: "Author", name: "author", widget: "string" }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Body", name: "body", widget: "markdown" }
+      - { label: "Featured Image", name: "image", widget: "image", required: false }

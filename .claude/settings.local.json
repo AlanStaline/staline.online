@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"D:/Soft_Data/VSCodeData/Workspaces/staline.online/.claude\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run *)"
+    ]
+  }
+}

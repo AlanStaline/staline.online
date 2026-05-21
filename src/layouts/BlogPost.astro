@@ -1,0 +1,51 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  frontmatter: {
+    title: string;
+    date: string;
+    author?: string;
+    tags?: string[];
+    description?: string;
+  };
+}
+
+const formatDate = (d: string) => new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const { frontmatter } = Astro.props;
+---
+<Layout title={frontmatter.title} description={frontmatter.description || ''}>
+  <article class="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold mb-4">{frontmatter.title}</h1>
+      <div class="flex items-center gap-4 text-text-muted text-sm">
+        <time datetime={frontmatter.date}>{formatDate(frontmatter.date)}</time>
+        {frontmatter.author && (
+          <>
+            <span>by</span>
+            <span>{frontmatter.author}</span>
+          </>
+        )}
+      </div>
+      {frontmatter.tags && frontmatter.tags.length > 0 && (
+        <div class="flex gap-2 mt-4">
+          {frontmatter.tags.map(tag => (
+            <span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <div class="prose dark:prose-invert max-w-none">
+      <slot />
+    </div>
+
+    <nav class="mt-12 pt-8 border-t border-border">
+      <a href="/blog/" class="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition">
+        <i class="fas fa-arrow-left"></i>
+        返回博客列表
+      </a>
+    </nav>
+  </article>
+</Layout>

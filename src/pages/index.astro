@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import config from '../data/config.json';
+import projectsData from '../data/projects.json';
+
+const allPosts = await Astro.glob('../data/articles/*.md');
+allPosts.sort((a, b) => new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime());
+const recentPosts = allPosts.slice(0, 2);
+
+const formatDate = (d: string) => new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+const featuredProjects = projectsData.filter(p => p.featured);
+---
+<Layout title={config.site.title} description={config.site.description}>
+  <div class="min-h-screen">
+    <!-- Hero Section -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface to-secondary/10 py-20">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center animate-slide-up">
+          <h1 class="text-5xl md:text-6xl font-bold mb-6">
+            {config.site.subtitle}
+          </h1>
+          <p class="text-xl text-text-muted mb-8 max-w-2xl mx-auto">
+            {config.site.description}
+          </p>
+          <div class="flex justify-center gap-4">
+            <a href="/blog/" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition font-medium">
+              浏览博客
+            </a>
+            <a href="/projects/" class="px-8 py-3 border-2 border-border rounded-lg hover:border-primary transition font-medium">
+              查看项目
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Posts -->
+    <section class="max-w-6xl mx-auto px-4 py-16">
+      <h2 class="text-3xl font-bold mb-8">最新文章</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        {recentPosts.map((post, i) => {
+          const slug = post.file.split('/').pop()?.replace('.md', '');
+          return (
+            <a href={`/blog/${slug}/`} class="block p-6 bg-surface-alt rounded-xl border border-border hover:shadow-lg transition animate-fade-in" style={`animation-delay: ${i * 0.1}s`}>
+              <div class="flex gap-2 mb-3">
+                {post.frontmatter.tags?.map((tag: string) => (
+                  <span class="text-xs px-2 py-1 bg-primary/10 text-primary rounded">{tag}</span>
+                ))}
+              </div>
+              <h3 class="text-xl font-semibold mb-2">{post.frontmatter.title}</h3>
+              <p class="text-text-muted mb-3">{post.frontmatter.description || ''}</p>
+              <time class="text-sm text-text-muted">{formatDate(post.frontmatter.date)}</time>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+
+    <!-- Featured Projects -->
+    <section class="bg-surface-alt py-16">
+      <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-3xl font-bold mb-8">精选项目</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          {featuredProjects.map((project, i) => (
+            <div class="p-6 bg-surface rounded-xl border border-border hover:shadow-lg transition animate-slide-up" style={`animation-delay: ${i * 0.1}s`}>
+              <h3 class="text-xl font-semibold mb-2">{project.title}</h3>
+              <p class="text-text-muted mb-3">{project.description}</p>
+              <div class="flex gap-2">
+                {project.tags.map((tag: string) => (
+                  <span class="text-xs px-2 py-1 bg-secondary/10 text-secondary rounded">{tag}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

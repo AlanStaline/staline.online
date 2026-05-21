@@ -1,0 +1,50 @@
+---
+import config from '../data/config.json';
+---
+<nav class="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="flex items-center justify-between h-16">
+      <a href="/" class="text-xl font-bold text-primary">
+        {config.site.title}
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-6">
+        {config.nav.map(link => (
+          <a href={link.href} class="text-text-muted hover:text-primary transition text-sm font-medium">
+            {link.label}
+          </a>
+        ))}
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button id="theme-toggle" class="p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Toggle theme">
+          <i class="fas fa-moon text-lg dark:hidden"></i>
+          <i class="fas fa-sun text-lg hidden dark:inline"></i>
+        </button>
+        <a href="/admin/" class="text-sm text-text-muted hover:text-primary transition">
+          <i class="fas fa-lock"></i>
+        </a>
+        <!-- Mobile hamburger -->
+        <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Menu">
+          <i class="fas fa-bars text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-border mt-2 pt-4">
+      {config.nav.map(link => (
+        <a href={link.href} class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium">
+          {link.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</nav>
+
+<script>
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+</script>

@@ -1,0 +1,65 @@
+---
+import Layout from '../layouts/Layout.astro';
+import config from '../data/config.json';
+---
+<Layout title={`关于 - ${config.site.title}`} description="关于我">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <header class="mb-12 animate-fade-in text-center">
+      <div class="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+        <i class="fas fa-user text-5xl text-white"></i>
+      </div>
+      <h1 class="text-4xl font-bold mb-4">{config.site.author}</h1>
+      <p class="text-text-muted text-lg">{config.site.description}</p>
+    </header>
+
+    <div class="space-y-8 animate-slide-up">
+      <section class="p-6 bg-surface-alt rounded-xl border border-border">
+        <h2 class="text-2xl font-semibold mb-4">关于我</h2>
+        <p class="text-text-muted leading-relaxed">
+          热爱技术，专注于 Web 开发和系统架构。喜欢探索新技术，分享学习心得。
+          致力于构建高性能、可维护的软件系统。
+        </p>
+      </section>
+
+      <section class="p-6 bg-surface-alt rounded-xl border border-border">
+        <h2 class="text-2xl font-semibold mb-4">技术栈</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Go', 'Docker', 'AWS'].map(tech => (
+            <div key={tech} class="p-3 bg-surface rounded-lg border border-border text-center">
+              <span class="text-sm font-medium">{tech}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="p-6 bg-surface-alt rounded-xl border border-border">
+        <h2 class="text-2xl font-semibold mb-4">联系我</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          <a href={config.social.github} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
+            <i class="fab fa-github text-2xl text-primary"></i>
+            <span>GitHub</span>
+          </a>
+          <a href={config.social.twitter} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
+            <i class="fab fa-twitter text-2xl text-primary"></i>
+            <span>Twitter</span>
+          </a>
+          <a href={config.social.email} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
+            <i class="fas fa-envelope text-2xl text-primary"></i>
+            <span>Email</span>
+          </a>
+          <a href={config.social.linkedin} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
+            <i class="fab fa-linkedin text-2xl text-primary"></i>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <nav class="mt-12 pt-8 border-t border-border">
+      <a href="/" class="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition">
+        <i class="fas fa-home"></i>
+        返回首页
+      </a>
+    </nav>
+  </div>
+</Layout>

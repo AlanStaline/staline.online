@@ -1,0 +1,49 @@
+---
+import config from '../data/config.json';
+---
+<footer class="bg-surface-alt border-t border-border py-8 mt-16">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="grid md:grid-cols-3 gap-8 mb-8">
+      <div>
+        <h3 class="font-semibold mb-3">{config.site.title}</h3>
+        <p class="text-sm text-text-muted">{config.site.description}</p>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-3">导航</h3>
+        <div class="space-y-2">
+          {config.nav.map(link => (
+            <a href={link.href} class="block text-sm text-text-muted hover:text-primary transition">
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-3">联系</h3>
+        <div class="space-y-2">
+          <a href={config.social.github} class="block text-sm text-text-muted hover:text-primary transition">
+            <i class="fab fa-github mr-1"></i> GitHub
+          </a>
+          <a href={config.social.twitter} class="block text-sm text-text-muted hover:text-primary transition">
+            <i class="fab fa-twitter mr-1"></i> Twitter
+          </a>
+          <a href={config.social.email} class="block text-sm text-text-muted hover:text-primary transition">
+            <i class="fas fa-envelope mr-1"></i> Email
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="pt-6 border-t border-border text-center text-sm text-text-muted">
+      &copy; 2024 {config.site.author}. All rights reserved.
+    </div>
+    <div class="mt-2 text-center text-xs text-text-muted space-x-4">
+      <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer" class="hover:text-primary transition">
+        桂ICP备2026005595号-1
+      </a>
+      <span class="text-border">|</span>
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=45010802001120" target="_blank" rel="noopener noreferrer" class="hover:text-primary transition">
+        桂公网安备45010802001120号
+      </a>
+    </div>
+  </div>
+</footer>
