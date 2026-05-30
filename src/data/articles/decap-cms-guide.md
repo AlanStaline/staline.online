@@ -1781,11 +1781,3 @@ sudo systemctl start semantic-cache
 sudo systemctl status llama-server
 sudo systemctl status semantic-cache
 ```
-
-
-
-### 6.2 oepnclaw上下文优化
-
-
-
-## Lossless-Claw 安装教程
