@@ -1688,3 +1688,104 @@ bash
 sudo systemctl enable redis-stack-server
 sudo systemctl start redis-stack-server
 ```
+
+
+
+#### 2. 创建 llama-server 服务
+
+bash
+
+**复制***\*下载\**
+
+```
+sudo tee /etc/systemd/system/llama-server.service << 'EOF'
+[Unit]
+Description=llama-server AI Model Service
+After=network.target redis-stack-server.service
+Wants=redis-stack-server.service
+
+[Service]
+Type=forking
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/ai-agent
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/ai-agent/start_llama_single.sh
+ExecStop=/opt/ai-agent/stop_agent.sh
+Restart=on-failure
+RestartSec=30
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+
+
+
+
+#### 3. 创建语义缓存服务
+
+bash
+
+**复制***\*下载\**
+
+```
+sudo tee /etc/systemd/system/semantic-cache.service << 'EOF'
+[Unit]
+Description=Semantic Cache Service for OpenClaw
+After=network.target redis-stack-server.service llama-server.service
+Wants=redis-stack-server.service
+
+[Service]
+Type=forking
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/ai-agent
+Environment="PATH=/opt/ai-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/ai-agent/start_semantic_cache.sh
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+
+
+
+
+#### 4. 启用服务
+
+bash
+
+**复制***\*下载\**
+
+```
+# 重新加载 systemd
+sudo systemctl daemon-reload
+
+# 启用服务（开机自启）
+sudo systemctl enable llama-server
+sudo systemctl enable semantic-cache
+
+# 启动服务
+sudo systemctl start llama-server
+sudo systemctl start semantic-cache
+
+# 查看状态
+sudo systemctl status llama-server
+sudo systemctl status semantic-cache
+```
+
+
+
+### 6.2 oepnclaw上下文优化
+
+
+
+## Lossless-Claw 安装教程
