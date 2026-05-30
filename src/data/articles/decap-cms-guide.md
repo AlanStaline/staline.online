@@ -1289,3 +1289,231 @@ echo "✅ 语义缓存服务已启动 (PID: $PID)"
 echo "   端口: 9001"
 echo "   日志: tail -f ${LOG_DIR}/semantic_cache.log"
 ```
+
+
+
+### 2.3 创建启动脚本 `start_llama_single.sh`
+
+```
+#!/bin/bash
+# /opt/ai-agent/start_llama_longcontext.sh
+
+cd /opt/ai-agent
+
+LLAMA_SERVER="/opt/ai-agent/llama.cpp/build/bin/llama-server"
+MODEL_PATH="/opt/ai-agent/models/Qwen3.5-35B-A3B-GGUF/Qwen3.5-35B-A3B-Q4_K_M.gguf"
+
+mkdir -p logs pids
+
+# 停止旧进程
+if [ -f pids/llama-server.pid ]; then
+    OLD_PID=$(cat pids/llama-server.pid)
+    if kill -0 $OLD_PID 2>/dev/null; then
+        echo "🛑 停止旧进程 (PID: $OLD_PID)..."
+        kill $OLD_PID
+        sleep 3
+    fi
+fi
+
+# 设置 CPU 性能模式
+echo "⚙️  优化 CPU 设置..."
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || true
+
+# 环境变量优化
+export OMP_NUM_THREADS=20
+export MKL_NUM_THREADS=20
+export OMP_WAIT_POLICY=active
+export OMP_PROC_BIND=spread
+
+echo "🚀 启动 llama-server..."
+echo "   模型: $(basename $MODEL_PATH)"
+echo "   端口: 7071"
+
+# 启动参数
+nohup "$LLAMA_SERVER" \
+    -m "$MODEL_PATH" \
+    --host 0.0.0.0 \
+    --port 7071 \
+    -t 20 \
+    --mlock \
+    --parallel 1 \
+    --ctx-size 32768 \
+    --batch-size 512 \
+    --ubatch-size 256 \
+    --cache-type-k q4_0 \
+    --cache-type-v q4_0 \
+    --flash-attn auto \
+    --no-mmap \
+    > logs/llama-server-7071.log 2>&1 &
+
+PID=$!
+echo $PID > pids/llama-server.pid
+
+sleep 5
+
+# 验证启动
+if kill -0 $PID 2>/dev/null; then
+    echo "✅ llama-server 已启动 (PID: $PID)"
+    
+    # 设置 CPU 亲和性
+    taskset -cp 0-19 $PID 2>/dev/null && echo "✅ CPU 亲和性已设置"
+    
+    # 显示内存状态
+    echo ""
+    echo "📊 内存状态:"
+    grep -E "VmRSS|Mlocked" /proc/$PID/status 2>/dev/null | while read line; do
+        echo "   $line"
+    done
+    
+    echo ""
+    echo "📝 查看日志: tail -f logs/llama-server-7071.log"
+    echo "🛑 停止服务: kill $PID"
+else
+    echo "❌ 启动失败，请检查日志"
+    tail -20 logs/llama-server-7071.log
+    exit 1
+fi
+```
+
+
+
+### 2.4 创建启动脚本 `stop_agent.sh`
+
+```
+#!/bin/bash
+# /opt/ai-agent/stop_agent.sh
+
+echo "🛑 停止 llama-server..."
+
+# 停止 llama-server
+if [ -f "pids/llama-server.pid" ]; then
+    PID=$(cat pids/llama-server.pid)
+    if kill -0 "$PID" 2>/dev/null; then
+        echo "停止 llama-server (PID: $PID)..."
+        kill "$PID"
+        sleep 2
+    fi
+    rm -f pids/llama-server.pid
+fi
+
+# 确保没有残留进程
+pkill -f "llama-server" 2>/dev/null
+
+echo "✅ llama-server 已停止"
+```
+
+
+
+
+
+##  第三阶段：修改 OpenClaw 配置
+
+Ai agent以OpenClaw为例
+
+
+
+### 3.1 更新 OpenClaw 配置
+
+
+
+```
+# 备份原配置
+cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak
+
+# 编辑配置指向语义缓存
+cat > ~/.openclaw/openclaw.json << 'EOF'
+{
+  "models": {
+    "providers": {
+      "local-llama": {
+        "baseUrl": "http://172.20.25.155:9001/v1",
+        "apiKey": "not-needed",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "qwen3.5-35b",
+            "name": "Qwen3.5-35B-A3B (本地+缓存)",
+            "api": "openai-completions",
+            "reasoning": false,
+            "input": ["text"],
+            "contextWindow": 16384,
+            "maxTokens": 4096
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "local-llama/qwen3.5-35b"
+      },
+      "models": {
+        "local-llama/qwen3.5-35b": {
+          "alias": "本地35B+语义缓存"
+        }
+      },
+      "skipBootstrap": true,
+      "memorySearch": {
+        "enabled": true
+      }
+    }
+  },
+  "openai_compatible": {
+    "api_type": "openai",
+    "api_base": "http://192.168.1.100:9001/v1",
+    "api_key": "not-needed",
+    "send_full_history": true
+  }
+}
+EOF
+```
+
+**注意**：将 `192.168.1.100` 替换为你的实际服务器 IP。
+
+
+
+## 📊 第四阶段：监控和统计
+
+
+
+
+
+### 4.1 创建缓存监控脚本 `cache_monitor.sh`
+
+```
+#!/bin/bash
+# /opt/ai-agent/cache_monitor.sh
+
+while true; do
+    clear
+    echo "================================================"
+    echo "📊 语义缓存监控 - $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "================================================"
+    
+    stats=$(curl -s http://localhost:9001/stats)
+    if [ ! -z "$stats" ]; then
+        hits=$(echo "$stats" | jq '.hits')
+        misses=$(echo "$stats" | jq '.misses')
+        hit_rate=$(echo "$stats" | jq '.hit_rate')
+        
+        echo -e "\n📈 缓存统计:"
+        echo "   命中次数: $hits"
+        echo "   未命中次数: $misses"
+        echo "   命中率: ${hit_rate}%"
+        
+        total=$((hits + misses))
+        if [ $total -gt 0 ]; then
+            saved_seconds=$((hits * 8))
+            echo "   节省时间: ${saved_seconds}秒 ≈ $((saved_seconds / 60))分钟"
+        fi
+    fi
+    
+    redis_mem=$(redis-cli INFO memory | grep used_memory_human | cut -d':' -f2)
+    echo -e "\n💾 Redis内存: $redis_mem"
+    
+    echo -e "\n================================================"
+    echo "刷新间隔: 10秒 (按 Ctrl+C 退出)"
+    sleep 10
+done
+```
