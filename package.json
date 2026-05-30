@@ -4,7 +4,7 @@
   "description": "Personal technical blog and portfolio",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "concurrently \"npx decap-server\" \"astro dev\"",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/mdx": "^2.0.13",
     "@types/node": "^20.0.0",
+    "concurrently": "^8.2.2",
     "typescript": "^5.0.0"
   }
 }

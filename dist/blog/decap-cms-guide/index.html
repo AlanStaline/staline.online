@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="仅用于个人尝试记录，处于实验摸索阶段。单实例模型 + 语义缓存混合架构部署，实现本地Ai agent对接。"><title>AI agent后端算力模型架构设计</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="/_astro/about.Cj1tb-6H.css">
 <link rel="stylesheet" href="/_astro/_slug_.DX5CIJdh.css"><script type="module">const n=localStorage.getItem("theme")||"light";n==="dark"&&document.documentElement.classList.add("dark");document.addEventListener("DOMContentLoaded",()=>{const e=document.getElementById("theme-toggle");e&&e.addEventListener("click",()=>{document.documentElement.classList.toggle("dark");const t=document.documentElement.classList.contains("dark");localStorage.setItem("theme",t?"dark":"light")})});document.getElementById("mobile-menu-btn")?.addEventListener("click",()=>{document.getElementById("mobile-menu")?.classList.toggle("hidden")});
-</script></head> <body class="bg-surface text-text transition-colors duration-300"> <nav class="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50"> <div class="max-w-6xl mx-auto px-4"> <div class="flex items-center justify-between h-16"> <a href="/" class="text-xl font-bold text-primary"> Tech Blog </a> <!-- Desktop nav --> <div class="hidden md:flex items-center gap-6"> <a href="/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 首页 </a><a href="/blog/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 博客 </a><a href="/projects/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 项目 </a><a href="/about/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 关于 </a> </div> <div class="flex items-center gap-4"> <button id="theme-toggle" class="p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Toggle theme"> <i class="fas fa-moon text-lg dark:hidden"></i> <i class="fas fa-sun text-lg hidden dark:inline"></i> </button> <a href="/admin/" class="text-sm text-text-muted hover:text-primary transition"> <i class="fas fa-lock"></i> </a> <!-- Mobile hamburger --> <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Menu"> <i class="fas fa-bars text-lg"></i> </button> </div> </div> <!-- Mobile menu --> <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-border mt-2 pt-4"> <a href="/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 首页 </a><a href="/blog/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 博客 </a><a href="/projects/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 项目 </a><a href="/about/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 关于 </a> </div> </div> </nav>  <main>  <article class="max-w-4xl mx-auto px-4 py-8 animate-fade-in"> <header class="mb-8"> <h1 class="text-4xl font-bold mb-4">AI agent后端算力模型架构设计</h1> <div class="flex items-center gap-4 text-text-muted text-sm"> <time datetime="2026-05-30T12:51:00.000Z">2026年5月30日</time>  <span>by</span> <span>Alan</span>  </div> <div class="flex gap-2 mt-4"> <span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">llama</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">Redis</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">RediSearch</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">Semantic cache</span> </div> </header> <div class="prose dark:prose-invert max-w-none"> <pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>🚀 单实例模型 + 语义缓存混合架构部署手册</span></span>
+</script></head> <body class="bg-surface text-text transition-colors duration-300"> <nav class="bg-surface/80 backdrop-blur-md border-b border-border sticky top-0 z-50"> <div class="max-w-6xl mx-auto px-4"> <div class="flex items-center justify-between h-16"> <a href="/" class="text-xl font-bold text-primary"> Tech Blog </a> <!-- Desktop nav --> <div class="hidden md:flex items-center gap-6"> <a href="/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 首页 </a><a href="/blog/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 博客 </a><a href="/projects/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 项目 </a><a href="/about/" class="text-text-muted hover:text-primary transition text-sm font-medium"> 关于 </a> </div> <div class="flex items-center gap-4"> <button id="theme-toggle" class="p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Toggle theme"> <i class="fas fa-moon text-lg dark:hidden"></i> <i class="fas fa-sun text-lg hidden dark:inline"></i> </button> <a href="/admin/" class="text-sm text-text-muted hover:text-primary transition"> <i class="fas fa-lock"></i> </a> <!-- Mobile hamburger --> <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-surface-alt transition" aria-label="Menu"> <i class="fas fa-bars text-lg"></i> </button> </div> </div> <!-- Mobile menu --> <div id="mobile-menu" class="hidden md:hidden pb-4 border-t border-border mt-2 pt-4"> <a href="/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 首页 </a><a href="/blog/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 博客 </a><a href="/projects/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 项目 </a><a href="/about/" class="block py-2 text-text-muted hover:text-primary transition text-sm font-medium"> 关于 </a> </div> </div> </nav>  <main>  <article class="max-w-4xl mx-auto px-4 py-8 animate-fade-in"> <header class="mb-8"> <h1 class="text-4xl font-bold mb-4">AI agent后端算力模型架构设计</h1> <div class="flex items-center gap-4 text-text-muted text-sm"> <time datetime="2026-05-30T12:51:00.000Z">2026年5月30日</time>  <span>by</span> <span>Alan</span>  </div> <div class="flex gap-2 mt-4"> <span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">llama</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">Redis</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">RediSearch</span><span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">Semantic cache</span> </div> </header> <div class="prose dark:prose-invert max-w-none"> <pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>🚀 单实例模型 + 语义缓存混合架构部署手册</span></span>
 <span class="line"><span>针对硬件：Intel Xeon E5-2695 v2 + 80GB DDR3 </span></span>
 <span class="line"><span>目标模型：Qwen3.5-35B-A3B (或备用4B模型)  </span></span>
 <span class="line"><span>核心架构：Ai agent → 语义缓存(混合策略) → llama-server (单实例)</span></span>
 <span class="line"><span></span></span></code></pre>
 <h2 id="-架构概览">🎯 架构概览</h2>
-<p><img src="/images/system_architecture_diagram.png" alt="架构概览" title="架构概览"></p>
+<p><img src="/images/system_architecture_diagram.png" alt="架构概览" title="架构概览"/></p>
 <h3 id="核心优势">核心优势</h3>
 <ul>
 <li>✅ <strong>时间敏感检测</strong>：避免”明天天气”类查询的假阳性</li>
@@ -17,7 +17,7 @@
 <h2 id="-第一阶段安装语义缓存依赖">📦 第一阶段：安装语义缓存依赖</h2>
 <h3 id="10源码编译">1.0 源码编译</h3>
 <p>llama.cpp-master.zip 压缩包解压</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>cd /opt/ai-agent</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>cd /opt/ai-agent</span></span>
 <span class="line"><span>unzip llama.cpp-master.zip</span></span>
 <span class="line"><span>mv llama.cpp-master llama.cpp</span></span>
 <span class="line"><span></span></span>
@@ -49,9 +49,9 @@
 <span class="line"><span></span></span></code></pre>
 <h3 id="11-安装-redis-和-redisearch-模块">1.1 安装 Redis 和 RediSearch 模块</h3>
 <p><strong>使用系统包管理器安装 Redis Stack（推荐）</strong></p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span># 添加 Redis 官方仓库</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span># 添加 Redis 官方仓库</span></span>
 <span class="line"><span>curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg</span></span>
-<span class="line"><span>echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list</span></span>
+<span class="line"><span>echo &quot;deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main&quot; | sudo tee /etc/apt/sources.list.d/redis.list</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 安装 Redis Stack Server（包含 RediSearch 和 RedisJSON）</span></span>
 <span class="line"><span>sudo apt update</span></span>
@@ -59,8 +59,8 @@
 <span class="line"><span>sudo apt install -y redis-stack-server</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止可能冲突的原有 Redis 服务</span></span>
-<span class="line"><span>sudo systemctl stop redis-server 2>/dev/null</span></span>
-<span class="line"><span>sudo systemctl disable redis-server 2>/dev/null</span></span>
+<span class="line"><span>sudo systemctl stop redis-server 2&gt;/dev/null</span></span>
+<span class="line"><span>sudo systemctl disable redis-server 2&gt;/dev/null</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 启动 Redis Stack Server</span></span>
 <span class="line"><span>sudo systemctl enable redis-stack-server</span></span>
@@ -70,24 +70,24 @@
 <span class="line"><span>redis-cli MODULE LIST</span></span>
 <span class="line"><span></span></span></code></pre>
 <p><strong>预期输出</strong>：</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1) 1) "name"</span></span>
-<span class="line"><span>   2) "ft"           # RediSearch</span></span>
-<span class="line"><span>   3) "ver"</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>1) 1) &quot;name&quot;</span></span>
+<span class="line"><span>   2) &quot;ft&quot;           # RediSearch</span></span>
+<span class="line"><span>   3) &quot;ver&quot;</span></span>
 <span class="line"><span>   4) (integer) 20804</span></span>
-<span class="line"><span>2) 1) "name"</span></span>
-<span class="line"><span>   2) "ReJSON"       # RedisJSON</span></span>
-<span class="line"><span>   3) "ver"</span></span>
+<span class="line"><span>2) 1) &quot;name&quot;</span></span>
+<span class="line"><span>   2) &quot;ReJSON&quot;       # RedisJSON</span></span>
+<span class="line"><span>   3) &quot;ver&quot;</span></span>
 <span class="line"><span>   4) (integer) 20804</span></span>
 <span class="line"><span></span></span></code></pre>
 <p><strong>如果输出为空，检查服务状态</strong>：</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span># 查看服务状态</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span># 查看服务状态</span></span>
 <span class="line"><span>sudo systemctl status redis-stack-server</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 查看日志排查问题</span></span>
 <span class="line"><span>sudo journalctl -u redis-stack-server -n 50 --no-pager</span></span>
 <span class="line"><span></span></span></code></pre>
 <p><strong>常见问题：端口 6379 被占用</strong></p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span># 查看占用端口的进程</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span># 查看占用端口的进程</span></span>
 <span class="line"><span>sudo lsof -i :6379</span></span>
 <span class="line"><span># 或</span></span>
 <span class="line"><span>sudo ss -tlnp | grep 6379</span></span>
@@ -100,7 +100,7 @@
 <span class="line"><span>sudo systemctl restart redis-stack-server</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="12-安装-python-依赖">1.2 安装 Python 依赖</h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>安装 python3-venv 包</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>安装 python3-venv 包</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>sudo apt update</span></span>
 <span class="line"><span>sudo apt install -y python3.10-venv python3-pip </span></span>
@@ -127,11 +127,11 @@
 <span class="line"><span>pip install torch --index-url https://download.pytorch.org/whl/cpu</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 验证安装</span></span>
-<span class="line"><span>python -c "from redisvl.extensions.llmcache import SemanticCache; print('✅ redisvl OK')"</span></span>
-<span class="line"><span>python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence-transformers OK')"</span></span>
+<span class="line"><span>python -c &quot;from redisvl.extensions.llmcache import SemanticCache; print(&#39;✅ redisvl OK&#39;)&quot;</span></span>
+<span class="line"><span>python -c &quot;from sentence_transformers import SentenceTransformer; print(&#39;✅ sentence-transformers OK&#39;)&quot;</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="13-下载语义向量模型">1.3 下载语义向量模型</h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>cd /opt/ai-agent/models</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>cd /opt/ai-agent/models</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>git clone https://www.modelscope.cn/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2.git</span></span>
 <span class="line"><span></span></span>
@@ -143,7 +143,7 @@
 <span class="line"><span></span></span></code></pre>
 <h2 id="-第二阶段部署语义缓存服务">🚀 第二阶段：部署语义缓存服务</h2>
 <h3 id="21-创建语义缓存服务-semantic_cache_servicepy">2.1 创建语义缓存服务 <code>semantic_cache_service.py</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/usr/bin/env python3</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/usr/bin/env python3</span></span>
 <span class="line"><span># /opt/ai-agent/semantic_cache_service.py</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>import os</span></span>
@@ -165,14 +165,14 @@
 <span class="line"><span>from redisvl.utils.vectorize import HFTextVectorizer</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 配置 ====================</span></span>
-<span class="line"><span>REDIS_HOST = 'localhost'</span></span>
+<span class="line"><span>REDIS_HOST = &#39;localhost&#39;</span></span>
 <span class="line"><span>REDIS_PORT = 6379</span></span>
-<span class="line"><span>LLAMA_SERVER_URL = 'http://localhost:7071/v1/chat/completions'</span></span>
+<span class="line"><span>LLAMA_SERVER_URL = &#39;http://localhost:7071/v1/chat/completions&#39;</span></span>
 <span class="line"><span>CACHE_PORT = 9001</span></span>
-<span class="line"><span>LOG_DIR = '/opt/ai-agent/logs'</span></span>
+<span class="line"><span>LOG_DIR = &#39;/opt/ai-agent/logs&#39;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 向量模型配置</span></span>
-<span class="line"><span>MODEL_NAME = '/opt/ai-agent/models/paraphrase-multilingual-MiniLM-L12-v2'</span></span>
+<span class="line"><span>MODEL_NAME = &#39;/opt/ai-agent/models/paraphrase-multilingual-MiniLM-L12-v2&#39;</span></span>
 <span class="line"><span>EMBEDDING_DIM = 384</span></span>
 <span class="line"><span>DISTANCE_THRESHOLD = 0.50</span></span>
 <span class="line"><span></span></span>
@@ -181,10 +181,10 @@
 <span class="line"><span></span></span>
 <span class="line"><span># 时间敏感词库</span></span>
 <span class="line"><span>TIME_SENSITIVE_PATTERNS = [</span></span>
-<span class="line"><span>    r'今天|明天|昨天|后天|前天|今晚|明晚|昨晚',</span></span>
-<span class="line"><span>    r'现在|当前|此刻|目前',</span></span>
-<span class="line"><span>    r'今年|明年|去年|本月|下月|上月',</span></span>
-<span class="line"><span>    r'星期[一二三四五六日天]|周[一二三四五六日天]',</span></span>
+<span class="line"><span>    r&#39;今天|明天|昨天|后天|前天|今晚|明晚|昨晚&#39;,</span></span>
+<span class="line"><span>    r&#39;现在|当前|此刻|目前&#39;,</span></span>
+<span class="line"><span>    r&#39;今年|明年|去年|本月|下月|上月&#39;,</span></span>
+<span class="line"><span>    r&#39;星期[一二三四五六日天]|周[一二三四五六日天]&#39;,</span></span>
 <span class="line"><span>]</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 初始化 ====================</span></span>
@@ -192,240 +192,240 @@
 <span class="line"><span></span></span>
 <span class="line"><span>logging.basicConfig(</span></span>
 <span class="line"><span>    level=logging.INFO,</span></span>
-<span class="line"><span>    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',</span></span>
+<span class="line"><span>    format=&#39;%(asctime)s - %(name)s - %(levelname)s - %(message)s&#39;,</span></span>
 <span class="line"><span>    handlers=[</span></span>
-<span class="line"><span>        logging.FileHandler(f'{LOG_DIR}/semantic_cache.log'),</span></span>
+<span class="line"><span>        logging.FileHandler(f&#39;{LOG_DIR}/semantic_cache.log&#39;),</span></span>
 <span class="line"><span>        logging.StreamHandler()</span></span>
 <span class="line"><span>    ]</span></span>
 <span class="line"><span>)</span></span>
-<span class="line"><span>logger = logging.getLogger('semantic-cache')</span></span>
+<span class="line"><span>logger = logging.getLogger(&#39;semantic-cache&#39;)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 初始化向量器</span></span>
 <span class="line"><span>try:</span></span>
 <span class="line"><span>    vectorizer = HFTextVectorizer(model=MODEL_NAME)</span></span>
-<span class="line"><span>    logger.info(f"✅ 向量器加载成功: {MODEL_NAME}")</span></span>
+<span class="line"><span>    logger.info(f&quot;✅ 向量器加载成功: {MODEL_NAME}&quot;)</span></span>
 <span class="line"><span>except Exception as e:</span></span>
-<span class="line"><span>    logger.error(f"❌ 向量器加载失败: {e}")</span></span>
+<span class="line"><span>    logger.error(f&quot;❌ 向量器加载失败: {e}&quot;)</span></span>
 <span class="line"><span>    try:</span></span>
-<span class="line"><span>        vectorizer = HFTextVectorizer(model='sentence-transformers/all-MiniLM-L6-v2', dim=384)</span></span>
-<span class="line"><span>        logger.info("✅ 使用备用向量器: all-MiniLM-L6-v2")</span></span>
+<span class="line"><span>        vectorizer = HFTextVectorizer(model=&#39;sentence-transformers/all-MiniLM-L6-v2&#39;, dim=384)</span></span>
+<span class="line"><span>        logger.info(&quot;✅ 使用备用向量器: all-MiniLM-L6-v2&quot;)</span></span>
 <span class="line"><span>    except Exception as e2:</span></span>
-<span class="line"><span>        logger.error(f"❌ 备用向量器也加载失败: {e2}")</span></span>
+<span class="line"><span>        logger.error(f&quot;❌ 备用向量器也加载失败: {e2}&quot;)</span></span>
 <span class="line"><span>        vectorizer = None</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>if vectorizer is not None:</span></span>
 <span class="line"><span>    try:</span></span>
 <span class="line"><span>        llmcache = SemanticCache(</span></span>
-<span class="line"><span>            name="llm_cache",</span></span>
-<span class="line"><span>            redis_url=f"redis://{REDIS_HOST}:{REDIS_PORT}",</span></span>
+<span class="line"><span>            name=&quot;llm_cache&quot;,</span></span>
+<span class="line"><span>            redis_url=f&quot;redis://{REDIS_HOST}:{REDIS_PORT}&quot;,</span></span>
 <span class="line"><span>            distance_threshold=DISTANCE_THRESHOLD,</span></span>
 <span class="line"><span>            ttl=CACHE_TTL,</span></span>
 <span class="line"><span>            vectorizer=vectorizer</span></span>
 <span class="line"><span>        )</span></span>
-<span class="line"><span>        logger.info("✅ 语义缓存初始化成功")</span></span>
+<span class="line"><span>        logger.info(&quot;✅ 语义缓存初始化成功&quot;)</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"❌ 语义缓存初始化失败: {e}")</span></span>
+<span class="line"><span>        logger.error(f&quot;❌ 语义缓存初始化失败: {e}&quot;)</span></span>
 <span class="line"><span>        llmcache = None</span></span>
 <span class="line"><span>else:</span></span>
 <span class="line"><span>    llmcache = None</span></span>
-<span class="line"><span>    logger.warning("⚠️ 向量器不可用，语义缓存已禁用")</span></span>
+<span class="line"><span>    logger.warning(&quot;⚠️ 向量器不可用，语义缓存已禁用&quot;)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 工具函数 ====================</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def extract_user_message(messages: List[Dict]) -> str:</span></span>
-<span class="line"><span>    """提取真实的用户消息"""</span></span>
+<span class="line"><span>def extract_user_message(messages: List[Dict]) -&gt; str:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;提取真实的用户消息&quot;&quot;&quot;</span></span>
 <span class="line"><span>    for msg in reversed(messages):</span></span>
-<span class="line"><span>        if msg.get('role') != 'user':</span></span>
+<span class="line"><span>        if msg.get(&#39;role&#39;) != &#39;user&#39;:</span></span>
 <span class="line"><span>            continue</span></span>
 <span class="line"><span>            </span></span>
-<span class="line"><span>        content = msg.get('content', '')</span></span>
+<span class="line"><span>        content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        if isinstance(content, list):</span></span>
 <span class="line"><span>            for item in content:</span></span>
-<span class="line"><span>                if item.get('type') == 'text':</span></span>
-<span class="line"><span>                    text = item.get('text', '')</span></span>
+<span class="line"><span>                if item.get(&#39;type&#39;) == &#39;text&#39;:</span></span>
+<span class="line"><span>                    text = item.get(&#39;text&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>                    cleaned = clean_user_message(text)</span></span>
 <span class="line"><span>                    if cleaned:</span></span>
 <span class="line"><span>                        return cleaned</span></span>
-<span class="line"><span>            return ''</span></span>
+<span class="line"><span>            return &#39;&#39;</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        if isinstance(content, str):</span></span>
 <span class="line"><span>            cleaned = clean_user_message(content)</span></span>
 <span class="line"><span>            if cleaned:</span></span>
 <span class="line"><span>                return cleaned</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    return ''</span></span>
+<span class="line"><span>    return &#39;&#39;</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def clean_user_message(text: str) -> str:</span></span>
-<span class="line"><span>    """清理用户消息中的 OpenClaw 元数据"""</span></span>
+<span class="line"><span>def clean_user_message(text: str) -&gt; str:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;清理用户消息中的 OpenClaw 元数据&quot;&quot;&quot;</span></span>
 <span class="line"><span>    if not text:</span></span>
-<span class="line"><span>        return ""</span></span>
+<span class="line"><span>        return &quot;&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    import re</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 移除时间戳格式 [Tue 2026-03-24 17:13 GMT+8]</span></span>
-<span class="line"><span>    cleaned = re.sub(r'\[[A-Za-z]{3}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT\+\d\]\s*', '', text)</span></span>
-<span class="line"><span>    cleaned = re.sub(r'\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}\s+GMT\+\d\]\s*', '', cleaned)</span></span>
+<span class="line"><span>    cleaned = re.sub(r&#39;\[[A-Za-z]{3}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT\+\d\]\s*&#39;, &#39;&#39;, text)</span></span>
+<span class="line"><span>    cleaned = re.sub(r&#39;\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}\s+GMT\+\d\]\s*&#39;, &#39;&#39;, cleaned)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 移除 Sender 元数据</span></span>
-<span class="line"><span>    cleaned = re.sub(r'Sender \(untrusted metadata\):.*?\n', '', cleaned)</span></span>
-<span class="line"><span>    cleaned = re.sub(r'```json\n.*?\n```\n', '', cleaned, flags=re.DOTALL)</span></span>
+<span class="line"><span>    cleaned = re.sub(r&#39;Sender \(untrusted metadata\):.*?\n&#39;, &#39;&#39;, cleaned)</span></span>
+<span class="line"><span>    cleaned = re.sub(r&#39;```json\n.*?\n```\n&#39;, &#39;&#39;, cleaned, flags=re.DOTALL)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 移除 openclaw-control-ui 标签</span></span>
-<span class="line"><span>    cleaned = re.sub(r'openclaw-control-ui', '', cleaned)</span></span>
+<span class="line"><span>    cleaned = re.sub(r&#39;openclaw-control-ui&#39;, &#39;&#39;, cleaned)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    cleaned = cleaned.strip()</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 如果清理后为空，尝试提取最后一行</span></span>
 <span class="line"><span>    if not cleaned and text:</span></span>
-<span class="line"><span>        lines = text.split('\n')</span></span>
+<span class="line"><span>        lines = text.split(&#39;\n&#39;)</span></span>
 <span class="line"><span>        for line in reversed(lines):</span></span>
 <span class="line"><span>            line = line.strip()</span></span>
-<span class="line"><span>            if line and not line.startswith('{') and '```' not in line:</span></span>
+<span class="line"><span>            if line and not line.startswith(&#39;{&#39;) and &#39;```&#39; not in line:</span></span>
 <span class="line"><span>                return line</span></span>
-<span class="line"><span>        return ""</span></span>
+<span class="line"><span>        return &quot;&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    return cleaned</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def is_time_sensitive(query: str) -> Tuple[bool, str]:</span></span>
-<span class="line"><span>    """检测查询是否时间敏感"""</span></span>
-<span class="line"><span>    if not query or len(query) &#x3C; 2:</span></span>
-<span class="line"><span>        return False, "查询太短"</span></span>
+<span class="line"><span>def is_time_sensitive(query: str) -&gt; Tuple[bool, str]:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;检测查询是否时间敏感&quot;&quot;&quot;</span></span>
+<span class="line"><span>    if not query or len(query) &lt; 2:</span></span>
+<span class="line"><span>        return False, &quot;查询太短&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    for pattern in TIME_SENSITIVE_PATTERNS:</span></span>
 <span class="line"><span>        if re.search(pattern, query):</span></span>
-<span class="line"><span>            return True, f"包含时间词: {pattern}"</span></span>
+<span class="line"><span>            return True, f&quot;包含时间词: {pattern}&quot;</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    return False, "非时间敏感"</span></span>
+<span class="line"><span>    return False, &quot;非时间敏感&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def clean_response_for_openclaw(response_dict: Dict) -> Dict:</span></span>
-<span class="line"><span>    """清理响应，移除 OpenClaw 不期望的字段"""</span></span>
+<span class="line"><span>def clean_response_for_openclaw(response_dict: Dict) -&gt; Dict:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;清理响应，移除 OpenClaw 不期望的字段&quot;&quot;&quot;</span></span>
 <span class="line"><span>    if not isinstance(response_dict, dict):</span></span>
 <span class="line"><span>        return response_dict</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    if 'choices' in response_dict:</span></span>
-<span class="line"><span>        for choice in response_dict['choices']:</span></span>
-<span class="line"><span>            if 'message' in choice and 'reasoning_content' in choice['message']:</span></span>
-<span class="line"><span>                del choice['message']['reasoning_content']</span></span>
+<span class="line"><span>    if &#39;choices&#39; in response_dict:</span></span>
+<span class="line"><span>        for choice in response_dict[&#39;choices&#39;]:</span></span>
+<span class="line"><span>            if &#39;message&#39; in choice and &#39;reasoning_content&#39; in choice[&#39;message&#39;]:</span></span>
+<span class="line"><span>                del choice[&#39;message&#39;][&#39;reasoning_content&#39;]</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    if 'id' not in response_dict:</span></span>
-<span class="line"><span>        response_dict['id'] = f"chatcmpl-cache-{int(time.time())}"</span></span>
-<span class="line"><span>    if 'created' not in response_dict:</span></span>
-<span class="line"><span>        response_dict['created'] = int(time.time())</span></span>
-<span class="line"><span>    if 'object' not in response_dict:</span></span>
-<span class="line"><span>        response_dict['object'] = 'chat.completion'</span></span>
+<span class="line"><span>    if &#39;id&#39; not in response_dict:</span></span>
+<span class="line"><span>        response_dict[&#39;id&#39;] = f&quot;chatcmpl-cache-{int(time.time())}&quot;</span></span>
+<span class="line"><span>    if &#39;created&#39; not in response_dict:</span></span>
+<span class="line"><span>        response_dict[&#39;created&#39;] = int(time.time())</span></span>
+<span class="line"><span>    if &#39;object&#39; not in response_dict:</span></span>
+<span class="line"><span>        response_dict[&#39;object&#39;] = &#39;chat.completion&#39;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    return response_dict</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def stream_cached_response(content: str):</span></span>
-<span class="line"><span>    """生成流式响应"""</span></span>
-<span class="line"><span>    stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"</span></span>
+<span class="line"><span>    &quot;&quot;&quot;生成流式响应&quot;&quot;&quot;</span></span>
+<span class="line"><span>    stream_id = f&quot;chatcmpl-{uuid.uuid4().hex[:12]}&quot;</span></span>
 <span class="line"><span>    created = int(time.time())</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    first_chunk = {</span></span>
-<span class="line"><span>        "id": stream_id,</span></span>
-<span class="line"><span>        "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>        "created": created,</span></span>
-<span class="line"><span>        "model": "semantic-cache",</span></span>
-<span class="line"><span>        "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]</span></span>
+<span class="line"><span>        &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>        &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>        &quot;created&quot;: created,</span></span>
+<span class="line"><span>        &quot;model&quot;: &quot;semantic-cache&quot;,</span></span>
+<span class="line"><span>        &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;role&quot;: &quot;assistant&quot;}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>    }</span></span>
-<span class="line"><span>    yield f"data: {json.dumps(first_chunk)}\n\n"</span></span>
+<span class="line"><span>    yield f&quot;data: {json.dumps(first_chunk)}\n\n&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    chunk_size = 10</span></span>
 <span class="line"><span>    for i in range(0, len(content), chunk_size):</span></span>
 <span class="line"><span>        chunk_content = content[i:i+chunk_size]</span></span>
 <span class="line"><span>        chunk = {</span></span>
-<span class="line"><span>            "id": stream_id,</span></span>
-<span class="line"><span>            "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>            "created": created,</span></span>
-<span class="line"><span>            "model": "semantic-cache",</span></span>
-<span class="line"><span>            "choices": [{"index": 0, "delta": {"content": chunk_content}, "finish_reason": None}]</span></span>
+<span class="line"><span>            &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>            &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>            &quot;created&quot;: created,</span></span>
+<span class="line"><span>            &quot;model&quot;: &quot;semantic-cache&quot;,</span></span>
+<span class="line"><span>            &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;content&quot;: chunk_content}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>        }</span></span>
-<span class="line"><span>        yield f"data: {json.dumps(chunk)}\n\n"</span></span>
+<span class="line"><span>        yield f&quot;data: {json.dumps(chunk)}\n\n&quot;</span></span>
 <span class="line"><span>        time.sleep(0.005)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    final_chunk = {</span></span>
-<span class="line"><span>        "id": stream_id,</span></span>
-<span class="line"><span>        "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>        "created": created,</span></span>
-<span class="line"><span>        "model": "semantic-cache",</span></span>
-<span class="line"><span>        "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]</span></span>
+<span class="line"><span>        &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>        &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>        &quot;created&quot;: created,</span></span>
+<span class="line"><span>        &quot;model&quot;: &quot;semantic-cache&quot;,</span></span>
+<span class="line"><span>        &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {}, &quot;finish_reason&quot;: &quot;stop&quot;}]</span></span>
 <span class="line"><span>    }</span></span>
-<span class="line"><span>    yield f"data: {json.dumps(final_chunk)}\n\n"</span></span>
-<span class="line"><span>    yield "data: [DONE]\n\n"</span></span>
+<span class="line"><span>    yield f&quot;data: {json.dumps(final_chunk)}\n\n&quot;</span></span>
+<span class="line"><span>    yield &quot;data: [DONE]\n\n&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def log_cache_operation(operation: str, query: str, hit: bool, details: Dict = None):</span></span>
-<span class="line"><span>    """记录缓存操作日志"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;记录缓存操作日志&quot;&quot;&quot;</span></span>
 <span class="line"><span>    log_entry = {</span></span>
-<span class="line"><span>        'timestamp': datetime.now().isoformat(),</span></span>
-<span class="line"><span>        'operation': operation,</span></span>
-<span class="line"><span>        'query_preview': query[:50],</span></span>
-<span class="line"><span>        'hit': hit,</span></span>
-<span class="line"><span>        'details': details or {}</span></span>
+<span class="line"><span>        &#39;timestamp&#39;: datetime.now().isoformat(),</span></span>
+<span class="line"><span>        &#39;operation&#39;: operation,</span></span>
+<span class="line"><span>        &#39;query_preview&#39;: query[:50],</span></span>
+<span class="line"><span>        &#39;hit&#39;: hit,</span></span>
+<span class="line"><span>        &#39;details&#39;: details or {}</span></span>
 <span class="line"><span>    }</span></span>
-<span class="line"><span>    logger.info(f"CACHE: {json.dumps(log_entry, ensure_ascii=False)}")</span></span>
+<span class="line"><span>    logger.info(f&quot;CACHE: {json.dumps(log_entry, ensure_ascii=False)}&quot;)</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    redis_client.incr(f"stats:cache:{operation}:total")</span></span>
+<span class="line"><span>    redis_client.incr(f&quot;stats:cache:{operation}:total&quot;)</span></span>
 <span class="line"><span>    if hit:</span></span>
-<span class="line"><span>        redis_client.incr("stats:cache:hits")</span></span>
+<span class="line"><span>        redis_client.incr(&quot;stats:cache:hits&quot;)</span></span>
 <span class="line"><span>    else:</span></span>
-<span class="line"><span>        redis_client.incr("stats:cache:misses")</span></span>
+<span class="line"><span>        redis_client.incr(&quot;stats:cache:misses&quot;)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 核心缓存逻辑 ====================</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def semantic_cache_lookup(query: str) -> Optional[Dict]:</span></span>
-<span class="line"><span>    """语义缓存查找"""</span></span>
+<span class="line"><span>def semantic_cache_lookup(query: str) -&gt; Optional[Dict]:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;语义缓存查找&quot;&quot;&quot;</span></span>
 <span class="line"><span>    if llmcache is None:</span></span>
 <span class="line"><span>        return None</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    is_sensitive, reason = is_time_sensitive(query)</span></span>
 <span class="line"><span>    if is_sensitive:</span></span>
-<span class="line"><span>        logger.info(f"⏰ 时间敏感查询，跳过缓存: {reason}")</span></span>
-<span class="line"><span>        log_cache_operation('skip_time_sensitive', query, False, {'reason': reason})</span></span>
+<span class="line"><span>        logger.info(f&quot;⏰ 时间敏感查询，跳过缓存: {reason}&quot;)</span></span>
+<span class="line"><span>        log_cache_operation(&#39;skip_time_sensitive&#39;, query, False, {&#39;reason&#39;: reason})</span></span>
 <span class="line"><span>        return None</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    try:</span></span>
 <span class="line"><span>        results = llmcache.check(prompt=query)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        if results and len(results) > 0:</span></span>
+<span class="line"><span>        if results and len(results) &gt; 0:</span></span>
 <span class="line"><span>            if isinstance(results, list):</span></span>
 <span class="line"><span>                for r in results:</span></span>
 <span class="line"><span>                    if isinstance(r, dict):</span></span>
-<span class="line"><span>                        distance = r.get('distance', r.get('score', 'unknown'))</span></span>
-<span class="line"><span>                        logger.info(f"缓存匹配 - 距离分数: {distance}")</span></span>
+<span class="line"><span>                        distance = r.get(&#39;distance&#39;, r.get(&#39;score&#39;, &#39;unknown&#39;))</span></span>
+<span class="line"><span>                        logger.info(f&quot;缓存匹配 - 距离分数: {distance}&quot;)</span></span>
 <span class="line"><span>                    break</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        if results and len(results) > 0:</span></span>
+<span class="line"><span>        if results and len(results) &gt; 0:</span></span>
 <span class="line"><span>            result = results[0] if isinstance(results, list) else results</span></span>
-<span class="line"><span>            logger.info(f"✅ 语义缓存命中")</span></span>
-<span class="line"><span>            log_cache_operation('hit', query, True, {})</span></span>
+<span class="line"><span>            logger.info(f&quot;✅ 语义缓存命中&quot;)</span></span>
+<span class="line"><span>            log_cache_operation(&#39;hit&#39;, query, True, {})</span></span>
 <span class="line"><span>            </span></span>
-<span class="line"><span>            response_str = result.get('response') if isinstance(result, dict) else result</span></span>
+<span class="line"><span>            response_str = result.get(&#39;response&#39;) if isinstance(result, dict) else result</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            if isinstance(response_str, str):</span></span>
 <span class="line"><span>                try:</span></span>
 <span class="line"><span>                    response_dict = json.loads(response_str)</span></span>
-<span class="line"><span>                    return {'response': response_dict}</span></span>
+<span class="line"><span>                    return {&#39;response&#39;: response_dict}</span></span>
 <span class="line"><span>                except:</span></span>
-<span class="line"><span>                    return {'response': {'content': response_str}}</span></span>
+<span class="line"><span>                    return {&#39;response&#39;: {&#39;content&#39;: response_str}}</span></span>
 <span class="line"><span>            elif isinstance(response_str, dict):</span></span>
-<span class="line"><span>                return {'response': response_str}</span></span>
+<span class="line"><span>                return {&#39;response&#39;: response_str}</span></span>
 <span class="line"><span>            else:</span></span>
-<span class="line"><span>                return {'response': {'content': str(response_str)}}</span></span>
+<span class="line"><span>                return {&#39;response&#39;: {&#39;content&#39;: str(response_str)}}</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"缓存查询失败: {e}")</span></span>
+<span class="line"><span>        logger.error(f&quot;缓存查询失败: {e}&quot;)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    return None</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def semantic_cache_store(query: str, response: Dict, messages: List[Dict]):</span></span>
-<span class="line"><span>    """存储到语义缓存"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;存储到语义缓存&quot;&quot;&quot;</span></span>
 <span class="line"><span>    if llmcache is None:</span></span>
 <span class="line"><span>        return</span></span>
 <span class="line"><span>    </span></span>
@@ -439,39 +439,39 @@
 <span class="line"><span>            prompt=query,</span></span>
 <span class="line"><span>            response=response_str,</span></span>
 <span class="line"><span>            metadata={</span></span>
-<span class="line"><span>                'cached_at': datetime.now().isoformat(),</span></span>
-<span class="line"><span>                'original_query': query[:200],</span></span>
-<span class="line"><span>                'message_count': len(messages)</span></span>
+<span class="line"><span>                &#39;cached_at&#39;: datetime.now().isoformat(),</span></span>
+<span class="line"><span>                &#39;original_query&#39;: query[:200],</span></span>
+<span class="line"><span>                &#39;message_count&#39;: len(messages)</span></span>
 <span class="line"><span>            }</span></span>
 <span class="line"><span>        )</span></span>
-<span class="line"><span>        logger.info(f"💾 已缓存: {query[:50]}...")</span></span>
-<span class="line"><span>        redis_client.incr("stats:cache:stores")</span></span>
+<span class="line"><span>        logger.info(f&quot;💾 已缓存: {query[:50]}...&quot;)</span></span>
+<span class="line"><span>        redis_client.incr(&quot;stats:cache:stores&quot;)</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"缓存存储失败: {e}", exc_info=True)</span></span>
+<span class="line"><span>        logger.error(f&quot;缓存存储失败: {e}&quot;, exc_info=True)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 转发函数 - 使用 completion 端点 ====================</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>def extract_answer_from_thinking(thinking_buffer: str) -> str:</span></span>
-<span class="line"><span>    """从思考内容中提取答案 - 针对 Qwen 思考格式优化"""</span></span>
+<span class="line"><span>def extract_answer_from_thinking(thinking_buffer: str) -&gt; str:</span></span>
+<span class="line"><span>    &quot;&quot;&quot;从思考内容中提取答案 - 针对 Qwen 思考格式优化&quot;&quot;&quot;</span></span>
 <span class="line"><span>    if not thinking_buffer:</span></span>
-<span class="line"><span>        return ""</span></span>
+<span class="line"><span>        return &quot;&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 思考关键词（用于过滤）</span></span>
 <span class="line"><span>    thinking_keywords = [</span></span>
-<span class="line"><span>        'Thinking Process:', '思考过程：',</span></span>
-<span class="line"><span>        'Analyze the Request:', '分析请求：',</span></span>
-<span class="line"><span>        'Review System Rules:', '检查系统规则：',</span></span>
-<span class="line"><span>        'Determine Response:', '确定响应：',</span></span>
-<span class="line"><span>        'Context:', '上下文：',</span></span>
-<span class="line"><span>        'System Instructions:', '系统指令：',</span></span>
-<span class="line"><span>        'Current User Query:', '当前用户查询：',</span></span>
-<span class="line"><span>        'Wait,', 'Let me', 'Actually,', 'Looking at',</span></span>
-<span class="line"><span>        'Raw Input', 'Let\'s re-read', 'Trace carefully',</span></span>
-<span class="line"><span>        'Step', '步骤', '1.', '2.', '3.', '4.', '5.'</span></span>
+<span class="line"><span>        &#39;Thinking Process:&#39;, &#39;思考过程：&#39;,</span></span>
+<span class="line"><span>        &#39;Analyze the Request:&#39;, &#39;分析请求：&#39;,</span></span>
+<span class="line"><span>        &#39;Review System Rules:&#39;, &#39;检查系统规则：&#39;,</span></span>
+<span class="line"><span>        &#39;Determine Response:&#39;, &#39;确定响应：&#39;,</span></span>
+<span class="line"><span>        &#39;Context:&#39;, &#39;上下文：&#39;,</span></span>
+<span class="line"><span>        &#39;System Instructions:&#39;, &#39;系统指令：&#39;,</span></span>
+<span class="line"><span>        &#39;Current User Query:&#39;, &#39;当前用户查询：&#39;,</span></span>
+<span class="line"><span>        &#39;Wait,&#39;, &#39;Let me&#39;, &#39;Actually,&#39;, &#39;Looking at&#39;,</span></span>
+<span class="line"><span>        &#39;Raw Input&#39;, &#39;Let\&#39;s re-read&#39;, &#39;Trace carefully&#39;,</span></span>
+<span class="line"><span>        &#39;Step&#39;, &#39;步骤&#39;, &#39;1.&#39;, &#39;2.&#39;, &#39;3.&#39;, &#39;4.&#39;, &#39;5.&#39;</span></span>
 <span class="line"><span>    ]</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    lines = thinking_buffer.split('\n')</span></span>
+<span class="line"><span>    lines = thinking_buffer.split(&#39;\n&#39;)</span></span>
 <span class="line"><span>    useful_lines = []</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    for line in lines:</span></span>
@@ -489,71 +489,71 @@
 <span class="line"><span>            continue</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 跳过编号列表</span></span>
-<span class="line"><span>        if re.match(r'^\d+\.', line):</span></span>
+<span class="line"><span>        if re.match(r&#39;^\d+\.&#39;, line):</span></span>
 <span class="line"><span>            continue</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 跳过以 - 或 * 开头的列表</span></span>
-<span class="line"><span>        if line.startswith('-') or line.startswith('*'):</span></span>
+<span class="line"><span>        if line.startswith(&#39;-&#39;) or line.startswith(&#39;*&#39;):</span></span>
 <span class="line"><span>            continue</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 跳过以 ** 开头的粗体标记</span></span>
-<span class="line"><span>        if line.startswith('**'):</span></span>
+<span class="line"><span>        if line.startswith(&#39;**&#39;):</span></span>
 <span class="line"><span>            continue</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        useful_lines.append(line)</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    if useful_lines:</span></span>
 <span class="line"><span>        # 取最后几条作为答案（答案通常在最后）</span></span>
-<span class="line"><span>        answer = '\n'.join(useful_lines[-5:])</span></span>
-<span class="line"><span>        if len(answer) > 20:</span></span>
-<span class="line"><span>            logger.info(f"从思考中提取答案，长度 {len(answer)} 字符")</span></span>
+<span class="line"><span>        answer = &#39;\n&#39;.join(useful_lines[-5:])</span></span>
+<span class="line"><span>        if len(answer) &gt; 20:</span></span>
+<span class="line"><span>            logger.info(f&quot;从思考中提取答案，长度 {len(answer)} 字符&quot;)</span></span>
 <span class="line"><span>            return answer</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 兜底：返回前500字符</span></span>
 <span class="line"><span>    return thinking_buffer[:500]</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def forward_to_llama(data):</span></span>
-<span class="line"><span>    """转发请求到llama-server - 完全替换系统消息（非流式）"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;转发请求到llama-server - 完全替换系统消息（非流式）&quot;&quot;&quot;</span></span>
 <span class="line"><span>    try:</span></span>
-<span class="line"><span>        messages = data.get('messages', [])</span></span>
+<span class="line"><span>        messages = data.get(&#39;messages&#39;, [])</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 提取用户消息和助手消息，完全忽略系统消息</span></span>
 <span class="line"><span>        conversation = []</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        for msg in messages:</span></span>
-<span class="line"><span>            role = msg.get('role', '')</span></span>
-<span class="line"><span>            content = msg.get('content', '')</span></span>
+<span class="line"><span>            role = msg.get(&#39;role&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>            </span></span>
-<span class="line"><span>            if role == 'user':</span></span>
+<span class="line"><span>            if role == &#39;user&#39;:</span></span>
 <span class="line"><span>                # 清理用户消息</span></span>
 <span class="line"><span>                if isinstance(content, str):</span></span>
 <span class="line"><span>                    cleaned = clean_user_message(content)</span></span>
 <span class="line"><span>                    if cleaned:</span></span>
-<span class="line"><span>                        conversation.append({"role": "user", "content": cleaned})</span></span>
+<span class="line"><span>                        conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: cleaned})</span></span>
 <span class="line"><span>                elif isinstance(content, list):</span></span>
 <span class="line"><span>                    for item in content:</span></span>
-<span class="line"><span>                        if item.get('type') == 'text':</span></span>
-<span class="line"><span>                            cleaned = clean_user_message(item.get('text', ''))</span></span>
+<span class="line"><span>                        if item.get(&#39;type&#39;) == &#39;text&#39;:</span></span>
+<span class="line"><span>                            cleaned = clean_user_message(item.get(&#39;text&#39;, &#39;&#39;))</span></span>
 <span class="line"><span>                            if cleaned:</span></span>
-<span class="line"><span>                                conversation.append({"role": "user", "content": cleaned})</span></span>
+<span class="line"><span>                                conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: cleaned})</span></span>
 <span class="line"><span>                                break</span></span>
-<span class="line"><span>            elif role == 'assistant':</span></span>
+<span class="line"><span>            elif role == &#39;assistant&#39;:</span></span>
 <span class="line"><span>                # 保留助手消息</span></span>
 <span class="line"><span>                if isinstance(content, str):</span></span>
-<span class="line"><span>                    conversation.append({"role": "assistant", "content": content})</span></span>
+<span class="line"><span>                    conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: content})</span></span>
 <span class="line"><span>                elif isinstance(content, list):</span></span>
 <span class="line"><span>                    for item in content:</span></span>
-<span class="line"><span>                        if item.get('type') == 'text':</span></span>
-<span class="line"><span>                            conversation.append({"role": "assistant", "content": item.get('text', '')})</span></span>
+<span class="line"><span>                        if item.get(&#39;type&#39;) == &#39;text&#39;:</span></span>
+<span class="line"><span>                            conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: item.get(&#39;text&#39;, &#39;&#39;)})</span></span>
 <span class="line"><span>                            break</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 保留最近 6 条对话</span></span>
-<span class="line"><span>        if len(conversation) > 6:</span></span>
+<span class="line"><span>        if len(conversation) &gt; 6:</span></span>
 <span class="line"><span>            conversation = conversation[-6:]</span></span>
-<span class="line"><span>            logger.info(f"📋 保留最近 {len(conversation)} 条对话")</span></span>
+<span class="line"><span>            logger.info(f&quot;📋 保留最近 {len(conversation)} 条对话&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 使用自定义精简系统消息</span></span>
-<span class="line"><span>        custom_system = """你是AI助手，运行在 OpenClaw 环境中。</span></span>
+<span class="line"><span>        custom_system = &quot;&quot;&quot;你是AI助手，运行在 OpenClaw 环境中。</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>## 可用工具</span></span>
 <span class="line"><span>- read: 读取文件内容</span></span>
@@ -565,7 +565,7 @@
 <span class="line"><span></span></span>
 <span class="line"><span>## 核心规则</span></span>
 <span class="line"><span>1. 输出纯文本，不要使用任何特殊格式标签</span></span>
-<span class="line"><span>2. 不要输出 &#x3C;BotName>、&#x3C;ModelAnswer> 等标签</span></span>
+<span class="line"><span>2. 不要输出 &lt;BotName&gt;、&lt;ModelAnswer&gt; 等标签</span></span>
 <span class="line"><span>3. 直接回答用户问题，不要重复</span></span>
 <span class="line"><span>4. 回答简洁，每个问题只回答一次</span></span>
 <span class="line"><span>5. 需要读取文件时，说明文件路径</span></span>
@@ -574,65 +574,65 @@
 <span class="line"><span>## 注意</span></span>
 <span class="line"><span>- 你无法直接访问用户的文件系统</span></span>
 <span class="line"><span>- 用户可以通过工具帮你读取文件</span></span>
-<span class="line"><span>- 如果需要读取文件，请告诉用户"""</span></span>
+<span class="line"><span>- 如果需要读取文件，请告诉用户&quot;&quot;&quot;</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 构建 prompt</span></span>
-<span class="line"><span>        prompt_parts = [f"System: {custom_system}"]</span></span>
+<span class="line"><span>        prompt_parts = [f&quot;System: {custom_system}&quot;]</span></span>
 <span class="line"><span>        for msg in conversation:</span></span>
-<span class="line"><span>            role = msg.get('role', '')</span></span>
-<span class="line"><span>            content = msg.get('content', '')</span></span>
-<span class="line"><span>            if role == 'user':</span></span>
-<span class="line"><span>                prompt_parts.append(f"User: {content}")</span></span>
-<span class="line"><span>            elif role == 'assistant':</span></span>
-<span class="line"><span>                prompt_parts.append(f"Assistant: {content}")</span></span>
+<span class="line"><span>            role = msg.get(&#39;role&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            if role == &#39;user&#39;:</span></span>
+<span class="line"><span>                prompt_parts.append(f&quot;User: {content}&quot;)</span></span>
+<span class="line"><span>            elif role == &#39;assistant&#39;:</span></span>
+<span class="line"><span>                prompt_parts.append(f&quot;Assistant: {content}&quot;)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        raw_prompt = "\n".join(prompt_parts) + "\nAssistant: "</span></span>
+<span class="line"><span>        raw_prompt = &quot;\n&quot;.join(prompt_parts) + &quot;\nAssistant: &quot;</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        logger.info(f"📝 自定义 prompt 长度: {len(raw_prompt)} 字符")</span></span>
+<span class="line"><span>        logger.info(f&quot;📝 自定义 prompt 长度: {len(raw_prompt)} 字符&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 构建 completion 请求</span></span>
 <span class="line"><span>        completion_data = {</span></span>
-<span class="line"><span>            "prompt": raw_prompt,</span></span>
-<span class="line"><span>            "n_predict": data.get('max_tokens', 16384),</span></span>
-<span class="line"><span>            "temperature": 0.7,</span></span>
-<span class="line"><span>            "top_p": 0.95,</span></span>
-<span class="line"><span>            "repeat_penalty": 1.15,</span></span>
-<span class="line"><span>            "presence_penalty": 0.5,</span></span>
-<span class="line"><span>            "frequency_penalty": 0.5,</span></span>
-<span class="line"><span>            "stream": False,</span></span>
-<span class="line"><span>            "thinking": False,</span></span>
-<span class="line"><span>            "reasoning": False,</span></span>
-<span class="line"><span>            "reasoning_effort": 0</span></span>
+<span class="line"><span>            &quot;prompt&quot;: raw_prompt,</span></span>
+<span class="line"><span>            &quot;n_predict&quot;: data.get(&#39;max_tokens&#39;, 16384),</span></span>
+<span class="line"><span>            &quot;temperature&quot;: 0.7,</span></span>
+<span class="line"><span>            &quot;top_p&quot;: 0.95,</span></span>
+<span class="line"><span>            &quot;repeat_penalty&quot;: 1.15,</span></span>
+<span class="line"><span>            &quot;presence_penalty&quot;: 0.5,</span></span>
+<span class="line"><span>            &quot;frequency_penalty&quot;: 0.5,</span></span>
+<span class="line"><span>            &quot;stream&quot;: False,</span></span>
+<span class="line"><span>            &quot;thinking&quot;: False,</span></span>
+<span class="line"><span>            &quot;reasoning&quot;: False,</span></span>
+<span class="line"><span>            &quot;reasoning_effort&quot;: 0</span></span>
 <span class="line"><span>        }</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 发送请求</span></span>
-<span class="line"><span>        response = requests.post("http://localhost:7071/completion", json=completion_data, timeout=120)</span></span>
-<span class="line"><span>        logger.info(f"后端响应状态: {response.status_code}")</span></span>
+<span class="line"><span>        response = requests.post(&quot;http://localhost:7071/completion&quot;, json=completion_data, timeout=120)</span></span>
+<span class="line"><span>        logger.info(f&quot;后端响应状态: {response.status_code}&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        result = response.json()</span></span>
-<span class="line"><span>        content = result.get('content', '')</span></span>
+<span class="line"><span>        content = result.get(&#39;content&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # ===== 后处理过滤 =====</span></span>
 <span class="line"><span>        import re</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 检测并过滤思考模式</span></span>
-<span class="line"><span>        thinking_keywords = ['Thinking Process:', '思考过程：', 'Analyze the Request:', 'Review System Rules:', 'Determine Response:', 'Context:', 'System Instructions:', 'Current User Query:']</span></span>
+<span class="line"><span>        thinking_keywords = [&#39;Thinking Process:&#39;, &#39;思考过程：&#39;, &#39;Analyze the Request:&#39;, &#39;Review System Rules:&#39;, &#39;Determine Response:&#39;, &#39;Context:&#39;, &#39;System Instructions:&#39;, &#39;Current User Query:&#39;]</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 如果内容包含思考模式，尝试提取答案</span></span>
 <span class="line"><span>        if any(kw in content for kw in thinking_keywords):</span></span>
-<span class="line"><span>            logger.info("检测到思考模式，尝试提取答案")</span></span>
+<span class="line"><span>            logger.info(&quot;检测到思考模式，尝试提取答案&quot;)</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            # 尝试按答案标记提取</span></span>
-<span class="line"><span>            answer_markers = ['Assistant:', '答案：', '回答：', 'Draft:', 'Therefore:', '所以：', '综上：']</span></span>
+<span class="line"><span>            answer_markers = [&#39;Assistant:&#39;, &#39;答案：&#39;, &#39;回答：&#39;, &#39;Draft:&#39;, &#39;Therefore:&#39;, &#39;所以：&#39;, &#39;综上：&#39;]</span></span>
 <span class="line"><span>            extracted = False</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            for marker in answer_markers:</span></span>
 <span class="line"><span>                if marker in content:</span></span>
 <span class="line"><span>                    parts = content.split(marker, 1)</span></span>
-<span class="line"><span>                    if len(parts) > 1:</span></span>
+<span class="line"><span>                    if len(parts) &gt; 1:</span></span>
 <span class="line"><span>                        content = parts[1].strip()</span></span>
 <span class="line"><span>                        extracted = True</span></span>
-<span class="line"><span>                        logger.info(f"通过 '{marker}' 提取答案")</span></span>
+<span class="line"><span>                        logger.info(f&quot;通过 &#39;{marker}&#39; 提取答案&quot;)</span></span>
 <span class="line"><span>                        break</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            if not extracted:</span></span>
@@ -640,95 +640,95 @@
 <span class="line"><span>                content = extract_answer_from_thinking(content)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 移除所有 HTML/XML 标签</span></span>
-<span class="line"><span>        content = re.sub(r'&#x3C;[^>]+>', '', content)</span></span>
+<span class="line"><span>        content = re.sub(r&#39;&lt;[^&gt;]+&gt;&#39;, &#39;&#39;, content)</span></span>
 <span class="line"><span>        # 移除多余的换行</span></span>
-<span class="line"><span>        content = re.sub(r'\n{3,}', '\n\n', content)</span></span>
+<span class="line"><span>        content = re.sub(r&#39;\n{3,}&#39;, &#39;\n\n&#39;, content)</span></span>
 <span class="line"><span>        # 移除思考标记残留</span></span>
 <span class="line"><span>        for kw in thinking_keywords:</span></span>
-<span class="line"><span>            content = re.sub(kw, '', content, flags=re.IGNORECASE)</span></span>
+<span class="line"><span>            content = re.sub(kw, &#39;&#39;, content, flags=re.IGNORECASE)</span></span>
 <span class="line"><span>        # 移除 Markdown 标题符号</span></span>
-<span class="line"><span>        content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>        content = re.sub(r&#39;^#{1,6}\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
 <span class="line"><span>        # 移除列表符号</span></span>
-<span class="line"><span>        content = re.sub(r'^\s*[-*+]\s+', '', content, flags=re.MULTILINE)</span></span>
-<span class="line"><span>        content = re.sub(r'^\s*\d+\.\s+', '', content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>        content = re.sub(r&#39;^\s*[-*+]\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>        content = re.sub(r&#39;^\s*\d+\.\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
 <span class="line"><span>        # 去除首尾空白</span></span>
 <span class="line"><span>        content = content.strip()</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 如果内容过长，截断</span></span>
-<span class="line"><span>        if len(content) > 16384:</span></span>
-<span class="line"><span>            content = content[:16384] + "..."</span></span>
-<span class="line"><span>            logger.info(f"✂️ 内容过长，已截断")</span></span>
+<span class="line"><span>        if len(content) &gt; 16384:</span></span>
+<span class="line"><span>            content = content[:16384] + &quot;...&quot;</span></span>
+<span class="line"><span>            logger.info(f&quot;✂️ 内容过长，已截断&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 如果内容为空，返回兜底消息</span></span>
 <span class="line"><span>        if not content:</span></span>
-<span class="line"><span>            content = "抱歉，生成内容为空。"</span></span>
-<span class="line"><span>            logger.warning("内容为空，使用兜底消息")</span></span>
+<span class="line"><span>            content = &quot;抱歉，生成内容为空。&quot;</span></span>
+<span class="line"><span>            logger.warning(&quot;内容为空，使用兜底消息&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 转换为 OpenAI chat 格式</span></span>
 <span class="line"><span>        return jsonify({</span></span>
-<span class="line"><span>            "choices": [{</span></span>
-<span class="line"><span>                "message": {"role": "assistant", "content": content},</span></span>
-<span class="line"><span>                "finish_reason": "stop",</span></span>
-<span class="line"><span>                "index": 0</span></span>
+<span class="line"><span>            &quot;choices&quot;: [{</span></span>
+<span class="line"><span>                &quot;message&quot;: {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: content},</span></span>
+<span class="line"><span>                &quot;finish_reason&quot;: &quot;stop&quot;,</span></span>
+<span class="line"><span>                &quot;index&quot;: 0</span></span>
 <span class="line"><span>            }],</span></span>
-<span class="line"><span>            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",</span></span>
-<span class="line"><span>            "created": int(time.time()),</span></span>
-<span class="line"><span>            "model": "qwen",</span></span>
-<span class="line"><span>            "object": "chat.completion"</span></span>
+<span class="line"><span>            &quot;id&quot;: f&quot;chatcmpl-{uuid.uuid4().hex[:12]}&quot;,</span></span>
+<span class="line"><span>            &quot;created&quot;: int(time.time()),</span></span>
+<span class="line"><span>            &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>            &quot;object&quot;: &quot;chat.completion&quot;</span></span>
 <span class="line"><span>        })</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>    except requests.exceptions.Timeout:</span></span>
-<span class="line"><span>        logger.error("llama-server超时")</span></span>
-<span class="line"><span>        return jsonify({'error': 'llama-server timeout'}), 504</span></span>
+<span class="line"><span>        logger.error(&quot;llama-server超时&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: &#39;llama-server timeout&#39;}), 504</span></span>
 <span class="line"><span>    except requests.exceptions.ConnectionError:</span></span>
-<span class="line"><span>        logger.error("llama-server连接失败")</span></span>
-<span class="line"><span>        return jsonify({'error': 'llama-server unavailable'}), 503</span></span>
+<span class="line"><span>        logger.error(&quot;llama-server连接失败&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: &#39;llama-server unavailable&#39;}), 503</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"转发失败: {e}")</span></span>
-<span class="line"><span>        return jsonify({'error': str(e)}), 500</span></span>
+<span class="line"><span>        logger.error(f&quot;转发失败: {e}&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: str(e)}), 500</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def forward_to_llama_stream(data):</span></span>
-<span class="line"><span>    """转发流式请求到llama-server - 完全替换系统消息（流式）"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;转发流式请求到llama-server - 完全替换系统消息（流式）&quot;&quot;&quot;</span></span>
 <span class="line"><span>    try:</span></span>
-<span class="line"><span>        messages = data.get('messages', [])</span></span>
+<span class="line"><span>        messages = data.get(&#39;messages&#39;, [])</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 提取用户消息和助手消息，完全忽略系统消息</span></span>
 <span class="line"><span>        conversation = []</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        for msg in messages:</span></span>
-<span class="line"><span>            role = msg.get('role', '')</span></span>
-<span class="line"><span>            content = msg.get('content', '')</span></span>
+<span class="line"><span>            role = msg.get(&#39;role&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>            </span></span>
-<span class="line"><span>            if role == 'user':</span></span>
+<span class="line"><span>            if role == &#39;user&#39;:</span></span>
 <span class="line"><span>                # 清理用户消息</span></span>
 <span class="line"><span>                if isinstance(content, str):</span></span>
 <span class="line"><span>                    cleaned = clean_user_message(content)</span></span>
 <span class="line"><span>                    if cleaned:</span></span>
-<span class="line"><span>                        conversation.append({"role": "user", "content": cleaned})</span></span>
+<span class="line"><span>                        conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: cleaned})</span></span>
 <span class="line"><span>                elif isinstance(content, list):</span></span>
 <span class="line"><span>                    for item in content:</span></span>
-<span class="line"><span>                        if item.get('type') == 'text':</span></span>
-<span class="line"><span>                            cleaned = clean_user_message(item.get('text', ''))</span></span>
+<span class="line"><span>                        if item.get(&#39;type&#39;) == &#39;text&#39;:</span></span>
+<span class="line"><span>                            cleaned = clean_user_message(item.get(&#39;text&#39;, &#39;&#39;))</span></span>
 <span class="line"><span>                            if cleaned:</span></span>
-<span class="line"><span>                                conversation.append({"role": "user", "content": cleaned})</span></span>
+<span class="line"><span>                                conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: cleaned})</span></span>
 <span class="line"><span>                                break</span></span>
-<span class="line"><span>            elif role == 'assistant':</span></span>
+<span class="line"><span>            elif role == &#39;assistant&#39;:</span></span>
 <span class="line"><span>                # 保留助手消息</span></span>
 <span class="line"><span>                if isinstance(content, str):</span></span>
-<span class="line"><span>                    conversation.append({"role": "assistant", "content": content})</span></span>
+<span class="line"><span>                    conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: content})</span></span>
 <span class="line"><span>                elif isinstance(content, list):</span></span>
 <span class="line"><span>                    for item in content:</span></span>
-<span class="line"><span>                        if item.get('type') == 'text':</span></span>
-<span class="line"><span>                            conversation.append({"role": "assistant", "content": item.get('text', '')})</span></span>
+<span class="line"><span>                        if item.get(&#39;type&#39;) == &#39;text&#39;:</span></span>
+<span class="line"><span>                            conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: item.get(&#39;text&#39;, &#39;&#39;)})</span></span>
 <span class="line"><span>                            break</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 保留最近 6 条对话（用于上下文）</span></span>
-<span class="line"><span>        if len(conversation) > 6:</span></span>
+<span class="line"><span>        if len(conversation) &gt; 6:</span></span>
 <span class="line"><span>            conversation = conversation[-6:]</span></span>
-<span class="line"><span>            logger.info(f"📋 保留最近 {len(conversation)} 条对话")</span></span>
+<span class="line"><span>            logger.info(f&quot;📋 保留最近 {len(conversation)} 条对话&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 使用自定义精简系统消息</span></span>
-<span class="line"><span>        custom_system = """你是AI助手，运行在 OpenClaw 环境中。</span></span>
+<span class="line"><span>        custom_system = &quot;&quot;&quot;你是AI助手，运行在 OpenClaw 环境中。</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>## 可用工具</span></span>
 <span class="line"><span>- read: 读取文件内容</span></span>
@@ -740,7 +740,7 @@
 <span class="line"><span></span></span>
 <span class="line"><span>## 核心规则</span></span>
 <span class="line"><span>1. 输出纯文本，不要使用任何特殊格式标签</span></span>
-<span class="line"><span>2. 不要输出 &#x3C;BotName>、&#x3C;ModelAnswer> 等标签</span></span>
+<span class="line"><span>2. 不要输出 &lt;BotName&gt;、&lt;ModelAnswer&gt; 等标签</span></span>
 <span class="line"><span>3. 直接回答用户问题，不要重复</span></span>
 <span class="line"><span>4. 回答简洁，每个问题只回答一次</span></span>
 <span class="line"><span>5. 需要读取文件时，说明文件路径</span></span>
@@ -749,57 +749,57 @@
 <span class="line"><span>## 注意</span></span>
 <span class="line"><span>- 你无法直接访问用户的文件系统</span></span>
 <span class="line"><span>- 用户可以通过工具帮你读取文件</span></span>
-<span class="line"><span>- 如果需要读取文件，请告诉用户"""</span></span>
+<span class="line"><span>- 如果需要读取文件，请告诉用户&quot;&quot;&quot;</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 构建 prompt</span></span>
-<span class="line"><span>        prompt_parts = [f"System: {custom_system}"]</span></span>
+<span class="line"><span>        prompt_parts = [f&quot;System: {custom_system}&quot;]</span></span>
 <span class="line"><span>        for msg in conversation:</span></span>
-<span class="line"><span>            role = msg.get('role', '')</span></span>
-<span class="line"><span>            content = msg.get('content', '')</span></span>
-<span class="line"><span>            if role == 'user':</span></span>
-<span class="line"><span>                prompt_parts.append(f"User: {content}")</span></span>
-<span class="line"><span>            elif role == 'assistant':</span></span>
-<span class="line"><span>                prompt_parts.append(f"Assistant: {content}")</span></span>
+<span class="line"><span>            role = msg.get(&#39;role&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            if role == &#39;user&#39;:</span></span>
+<span class="line"><span>                prompt_parts.append(f&quot;User: {content}&quot;)</span></span>
+<span class="line"><span>            elif role == &#39;assistant&#39;:</span></span>
+<span class="line"><span>                prompt_parts.append(f&quot;Assistant: {content}&quot;)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        raw_prompt = "\n".join(prompt_parts) + "\nAssistant: "</span></span>
+<span class="line"><span>        raw_prompt = &quot;\n&quot;.join(prompt_parts) + &quot;\nAssistant: &quot;</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        logger.info(f"📝 自定义 prompt 长度: {len(raw_prompt)} 字符")</span></span>
+<span class="line"><span>        logger.info(f&quot;📝 自定义 prompt 长度: {len(raw_prompt)} 字符&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 构建 completion 请求</span></span>
 <span class="line"><span>        completion_data = {</span></span>
-<span class="line"><span>            "prompt": raw_prompt,</span></span>
-<span class="line"><span>            "n_predict": data.get('max_tokens', 16384),</span></span>
-<span class="line"><span>            "temperature": 0.7,</span></span>
-<span class="line"><span>            "top_p": 0.95,</span></span>
-<span class="line"><span>            "repeat_penalty": 1.15,</span></span>
-<span class="line"><span>            "presence_penalty": 0.5,</span></span>
-<span class="line"><span>            "frequency_penalty": 0.5,</span></span>
-<span class="line"><span>            "stream": True,</span></span>
-<span class="line"><span>            "thinking": False,</span></span>
-<span class="line"><span>            "reasoning": False,</span></span>
-<span class="line"><span>            "reasoning_effort": 0</span></span>
+<span class="line"><span>            &quot;prompt&quot;: raw_prompt,</span></span>
+<span class="line"><span>            &quot;n_predict&quot;: data.get(&#39;max_tokens&#39;, 16384),</span></span>
+<span class="line"><span>            &quot;temperature&quot;: 0.7,</span></span>
+<span class="line"><span>            &quot;top_p&quot;: 0.95,</span></span>
+<span class="line"><span>            &quot;repeat_penalty&quot;: 1.15,</span></span>
+<span class="line"><span>            &quot;presence_penalty&quot;: 0.5,</span></span>
+<span class="line"><span>            &quot;frequency_penalty&quot;: 0.5,</span></span>
+<span class="line"><span>            &quot;stream&quot;: True,</span></span>
+<span class="line"><span>            &quot;thinking&quot;: False,</span></span>
+<span class="line"><span>            &quot;reasoning&quot;: False,</span></span>
+<span class="line"><span>            &quot;reasoning_effort&quot;: 0</span></span>
 <span class="line"><span>        }</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 发送请求到 completion 端点</span></span>
 <span class="line"><span>        response = requests.post(</span></span>
-<span class="line"><span>            "http://localhost:7071/completion",</span></span>
+<span class="line"><span>            &quot;http://localhost:7071/completion&quot;,</span></span>
 <span class="line"><span>            json=completion_data,</span></span>
 <span class="line"><span>            stream=True,</span></span>
 <span class="line"><span>            timeout=120</span></span>
 <span class="line"><span>        )</span></span>
-<span class="line"><span>        logger.info(f"后端流式响应状态: {response.status_code}")</span></span>
+<span class="line"><span>        logger.info(f&quot;后端流式响应状态: {response.status_code}&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        def generate():</span></span>
 <span class="line"><span>            import re</span></span>
 <span class="line"><span>            import time</span></span>
-<span class="line"><span>            stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"</span></span>
+<span class="line"><span>            stream_id = f&quot;chatcmpl-{uuid.uuid4().hex[:12]}&quot;</span></span>
 <span class="line"><span>            created = int(time.time())</span></span>
 <span class="line"><span>            first_chunk_sent = False</span></span>
-<span class="line"><span>            accumulated_content = ""</span></span>
+<span class="line"><span>            accumulated_content = &quot;&quot;</span></span>
 <span class="line"><span>            repeat_count = 0</span></span>
 <span class="line"><span>            thinking_mode = False</span></span>
 <span class="line"><span>            thinking_start_time = None</span></span>
-<span class="line"><span>            thinking_buffer = ""</span></span>
+<span class="line"><span>            thinking_buffer = &quot;&quot;</span></span>
 <span class="line"><span>            MAX_THINKING_TIME = 15  # 15秒思考时间，避免用户等待太久</span></span>
 <span class="line"><span>            MAX_TOTAL_TIME = 120   # 总生成时间120秒</span></span>
 <span class="line"><span>            </span></span>
@@ -807,34 +807,34 @@
 <span class="line"><span>            </span></span>
 <span class="line"><span>            for line in response.iter_lines():</span></span>
 <span class="line"><span>                # 检查总时间是否超时</span></span>
-<span class="line"><span>                if time.time() - start_time > MAX_TOTAL_TIME:</span></span>
-<span class="line"><span>                    logger.warning(f"总生成时间超时 ({MAX_TOTAL_TIME}秒)，停止生成")</span></span>
+<span class="line"><span>                if time.time() - start_time &gt; MAX_TOTAL_TIME:</span></span>
+<span class="line"><span>                    logger.warning(f&quot;总生成时间超时 ({MAX_TOTAL_TIME}秒)，停止生成&quot;)</span></span>
 <span class="line"><span>                    break</span></span>
 <span class="line"><span>                </span></span>
 <span class="line"><span>                if line:</span></span>
 <span class="line"><span>                    try:</span></span>
-<span class="line"><span>                        line_str = line.decode('utf-8')</span></span>
+<span class="line"><span>                        line_str = line.decode(&#39;utf-8&#39;)</span></span>
 <span class="line"><span>                        if not line_str.strip():</span></span>
 <span class="line"><span>                            continue</span></span>
 <span class="line"><span>                        </span></span>
-<span class="line"><span>                        if line_str.startswith('data: '):</span></span>
+<span class="line"><span>                        if line_str.startswith(&#39;data: &#39;):</span></span>
 <span class="line"><span>                            json_str = line_str[6:]</span></span>
-<span class="line"><span>                            if json_str.strip() == '[DONE]':</span></span>
+<span class="line"><span>                            if json_str.strip() == &#39;[DONE]&#39;:</span></span>
 <span class="line"><span>                                break</span></span>
 <span class="line"><span>                            </span></span>
 <span class="line"><span>                            completion_chunk = json.loads(json_str)</span></span>
-<span class="line"><span>                            content = completion_chunk.get('content', '')</span></span>
+<span class="line"><span>                            content = completion_chunk.get(&#39;content&#39;, &#39;&#39;)</span></span>
 <span class="line"><span>                            </span></span>
 <span class="line"><span>                            if content:</span></span>
 <span class="line"><span>                                # ===== 检测思考模式开始 =====</span></span>
-<span class="line"><span>                                thinking_keywords = ['Thinking Process:', '思考过程：', 'Analyze the Request:', 'Review System Rules:', 'Determine Response:', 'Context:', 'System Instructions:']</span></span>
+<span class="line"><span>                                thinking_keywords = [&#39;Thinking Process:&#39;, &#39;思考过程：&#39;, &#39;Analyze the Request:&#39;, &#39;Review System Rules:&#39;, &#39;Determine Response:&#39;, &#39;Context:&#39;, &#39;System Instructions:&#39;]</span></span>
 <span class="line"><span>                                is_thinking = any(kw in content for kw in thinking_keywords)</span></span>
 <span class="line"><span>                                </span></span>
 <span class="line"><span>                                if is_thinking and not thinking_mode:</span></span>
 <span class="line"><span>                                    thinking_mode = True</span></span>
 <span class="line"><span>                                    thinking_start_time = time.time()</span></span>
-<span class="line"><span>                                    thinking_buffer = ""</span></span>
-<span class="line"><span>                                    logger.info("检测到思考模式，等待思考完成...")</span></span>
+<span class="line"><span>                                    thinking_buffer = &quot;&quot;</span></span>
+<span class="line"><span>                                    logger.info(&quot;检测到思考模式，等待思考完成...&quot;)</span></span>
 <span class="line"><span>                                    continue</span></span>
 <span class="line"><span>                                </span></span>
 <span class="line"><span>                                # ===== 如果在思考模式中 =====</span></span>
@@ -842,7 +842,7 @@
 <span class="line"><span>                                    thinking_buffer += content</span></span>
 <span class="line"><span>                                    </span></span>
 <span class="line"><span>                                    # 检测是否出现答案标志</span></span>
-<span class="line"><span>                                    answer_markers = ['Assistant:', '答案：', '回答：', 'Draft:', 'Therefore:', '所以：', '综上：']</span></span>
+<span class="line"><span>                                    answer_markers = [&#39;Assistant:&#39;, &#39;答案：&#39;, &#39;回答：&#39;, &#39;Draft:&#39;, &#39;Therefore:&#39;, &#39;所以：&#39;, &#39;综上：&#39;]</span></span>
 <span class="line"><span>                                    has_answer = any(kw in content for kw in answer_markers)</span></span>
 <span class="line"><span>                                    </span></span>
 <span class="line"><span>                                    if has_answer:</span></span>
@@ -851,15 +851,15 @@
 <span class="line"><span>                                        if answer:</span></span>
 <span class="line"><span>                                            content = answer</span></span>
 <span class="line"><span>                                            thinking_mode = False</span></span>
-<span class="line"><span>                                            logger.info(f"从思考中提取答案，长度 {len(answer)}")</span></span>
-<span class="line"><span>                                    elif time.time() - thinking_start_time > MAX_THINKING_TIME:</span></span>
+<span class="line"><span>                                            logger.info(f&quot;从思考中提取答案，长度 {len(answer)}&quot;)</span></span>
+<span class="line"><span>                                    elif time.time() - thinking_start_time &gt; MAX_THINKING_TIME:</span></span>
 <span class="line"><span>                                        # 超时，尝试提取答案</span></span>
 <span class="line"><span>                                        answer = extract_answer_from_thinking(thinking_buffer)</span></span>
 <span class="line"><span>                                        if answer:</span></span>
 <span class="line"><span>                                            content = answer</span></span>
-<span class="line"><span>                                            logger.warning(f"思考超时 ({MAX_THINKING_TIME}秒)，提取答案 {len(answer)}")</span></span>
+<span class="line"><span>                                            logger.warning(f&quot;思考超时 ({MAX_THINKING_TIME}秒)，提取答案 {len(answer)}&quot;)</span></span>
 <span class="line"><span>                                        else:</span></span>
-<span class="line"><span>                                            content = "抱歉，生成超时。"</span></span>
+<span class="line"><span>                                            content = &quot;抱歉，生成超时。&quot;</span></span>
 <span class="line"><span>                                        thinking_mode = False</span></span>
 <span class="line"><span>                                    else:</span></span>
 <span class="line"><span>                                        # 还在思考中，继续等待</span></span>
@@ -867,27 +867,27 @@
 <span class="line"><span>                                </span></span>
 <span class="line"><span>                                # ===== 过滤特殊标签 =====</span></span>
 <span class="line"><span>                                # 移除所有 HTML/XML 标签</span></span>
-<span class="line"><span>                                content = re.sub(r'&#x3C;[^>]+>', '', content)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;&lt;[^&gt;]+&gt;&#39;, &#39;&#39;, content)</span></span>
 <span class="line"><span>                                # 移除多余的换行</span></span>
-<span class="line"><span>                                content = re.sub(r'\n{3,}', '\n\n', content)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;\n{3,}&#39;, &#39;\n\n&#39;, content)</span></span>
 <span class="line"><span>                                # 移除思考标记残留</span></span>
 <span class="line"><span>                                for kw in thinking_keywords:</span></span>
-<span class="line"><span>                                    content = re.sub(kw, '', content, flags=re.IGNORECASE)</span></span>
+<span class="line"><span>                                    content = re.sub(kw, &#39;&#39;, content, flags=re.IGNORECASE)</span></span>
 <span class="line"><span>                                # 移除 Markdown 标题符号</span></span>
-<span class="line"><span>                                content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;^#{1,6}\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
 <span class="line"><span>                                # 移除列表符号</span></span>
-<span class="line"><span>                                content = re.sub(r'^\s*[-*+]\s+', '', content, flags=re.MULTILINE)</span></span>
-<span class="line"><span>                                content = re.sub(r'^\s*\d+\.\s+', '', content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;^\s*[-*+]\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;^\s*\d+\.\s+&#39;, &#39;&#39;, content, flags=re.MULTILINE)</span></span>
 <span class="line"><span>                                # 清理多余空格</span></span>
-<span class="line"><span>                                content = re.sub(r'\n\s*\n', '\n\n', content)</span></span>
+<span class="line"><span>                                content = re.sub(r&#39;\n\s*\n&#39;, &#39;\n\n&#39;, content)</span></span>
 <span class="line"><span>                                content = content.strip()</span></span>
 <span class="line"><span>                                </span></span>
 <span class="line"><span>                                if content:</span></span>
 <span class="line"><span>                                    # ===== 重复检测 =====</span></span>
-<span class="line"><span>                                    if len(content) > 20 and content in accumulated_content:</span></span>
+<span class="line"><span>                                    if len(content) &gt; 20 and content in accumulated_content:</span></span>
 <span class="line"><span>                                        repeat_count += 1</span></span>
-<span class="line"><span>                                        if repeat_count > 2:</span></span>
-<span class="line"><span>                                            logger.warning("检测到重复内容，停止生成")</span></span>
+<span class="line"><span>                                        if repeat_count &gt; 2:</span></span>
+<span class="line"><span>                                            logger.warning(&quot;检测到重复内容，停止生成&quot;)</span></span>
 <span class="line"><span>                                            break</span></span>
 <span class="line"><span>                                    else:</span></span>
 <span class="line"><span>                                        repeat_count = 0</span></span>
@@ -895,160 +895,160 @@
 <span class="line"><span>                                    accumulated_content += content</span></span>
 <span class="line"><span>                                    </span></span>
 <span class="line"><span>                                    # ===== 长度限制 =====</span></span>
-<span class="line"><span>                                    if len(accumulated_content) > 16384:</span></span>
-<span class="line"><span>                                        logger.warning("内容过长，停止生成")</span></span>
+<span class="line"><span>                                    if len(accumulated_content) &gt; 16384:</span></span>
+<span class="line"><span>                                        logger.warning(&quot;内容过长，停止生成&quot;)</span></span>
 <span class="line"><span>                                        break</span></span>
 <span class="line"><span>                                    </span></span>
 <span class="line"><span>                                    if not first_chunk_sent:</span></span>
 <span class="line"><span>                                        first_chunk = {</span></span>
-<span class="line"><span>                                            "id": stream_id,</span></span>
-<span class="line"><span>                                            "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>                                            "created": created,</span></span>
-<span class="line"><span>                                            "model": "qwen",</span></span>
-<span class="line"><span>                                            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]</span></span>
+<span class="line"><span>                                            &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>                                            &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>                                            &quot;created&quot;: created,</span></span>
+<span class="line"><span>                                            &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>                                            &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;role&quot;: &quot;assistant&quot;}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>                                        }</span></span>
-<span class="line"><span>                                        yield f"data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n"</span></span>
+<span class="line"><span>                                        yield f&quot;data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n&quot;</span></span>
 <span class="line"><span>                                        first_chunk_sent = True</span></span>
 <span class="line"><span>                                    </span></span>
 <span class="line"><span>                                    chunk = {</span></span>
-<span class="line"><span>                                        "id": stream_id,</span></span>
-<span class="line"><span>                                        "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>                                        "created": created,</span></span>
-<span class="line"><span>                                        "model": "qwen",</span></span>
-<span class="line"><span>                                        "choices": [{"index": 0, "delta": {"content": content}, "finish_reason": None}]</span></span>
+<span class="line"><span>                                        &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>                                        &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>                                        &quot;created&quot;: created,</span></span>
+<span class="line"><span>                                        &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>                                        &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;content&quot;: content}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>                                    }</span></span>
-<span class="line"><span>                                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"</span></span>
+<span class="line"><span>                                    yield f&quot;data: {json.dumps(chunk, ensure_ascii=False)}\n\n&quot;</span></span>
 <span class="line"><span>                                </span></span>
-<span class="line"><span>                                if completion_chunk.get('stop', False):</span></span>
+<span class="line"><span>                                if completion_chunk.get(&#39;stop&#39;, False):</span></span>
 <span class="line"><span>                                    break</span></span>
 <span class="line"><span>                                </span></span>
 <span class="line"><span>                    except json.JSONDecodeError as e:</span></span>
-<span class="line"><span>                        logger.error(f"JSON 解析失败: {e}")</span></span>
+<span class="line"><span>                        logger.error(f&quot;JSON 解析失败: {e}&quot;)</span></span>
 <span class="line"><span>                    except Exception as e:</span></span>
-<span class="line"><span>                        logger.error(f"处理响应失败: {e}")</span></span>
+<span class="line"><span>                        logger.error(f&quot;处理响应失败: {e}&quot;)</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            # ===== 循环结束，如果还在思考模式，尝试提取答案 =====</span></span>
 <span class="line"><span>            if thinking_mode and thinking_buffer:</span></span>
 <span class="line"><span>                answer = extract_answer_from_thinking(thinking_buffer)</span></span>
 <span class="line"><span>                if answer:</span></span>
-<span class="line"><span>                    logger.warning(f"思考未完成，提取缓冲答案 ({len(answer)} 字符)")</span></span>
+<span class="line"><span>                    logger.warning(f&quot;思考未完成，提取缓冲答案 ({len(answer)} 字符)&quot;)</span></span>
 <span class="line"><span>                    if not first_chunk_sent:</span></span>
 <span class="line"><span>                        first_chunk = {</span></span>
-<span class="line"><span>                            "id": stream_id,</span></span>
-<span class="line"><span>                            "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>                            "created": created,</span></span>
-<span class="line"><span>                            "model": "qwen",</span></span>
-<span class="line"><span>                            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]</span></span>
+<span class="line"><span>                            &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>                            &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>                            &quot;created&quot;: created,</span></span>
+<span class="line"><span>                            &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>                            &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;role&quot;: &quot;assistant&quot;}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>                        }</span></span>
-<span class="line"><span>                        yield f"data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n"</span></span>
+<span class="line"><span>                        yield f&quot;data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n&quot;</span></span>
 <span class="line"><span>                    </span></span>
 <span class="line"><span>                    chunk = {</span></span>
-<span class="line"><span>                        "id": stream_id,</span></span>
-<span class="line"><span>                        "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>                        "created": created,</span></span>
-<span class="line"><span>                        "model": "qwen",</span></span>
-<span class="line"><span>                        "choices": [{"index": 0, "delta": {"content": answer}, "finish_reason": None}]</span></span>
+<span class="line"><span>                        &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>                        &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>                        &quot;created&quot;: created,</span></span>
+<span class="line"><span>                        &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>                        &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {&quot;content&quot;: answer}, &quot;finish_reason&quot;: None}]</span></span>
 <span class="line"><span>                    }</span></span>
-<span class="line"><span>                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"</span></span>
+<span class="line"><span>                    yield f&quot;data: {json.dumps(chunk, ensure_ascii=False)}\n\n&quot;</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            # 发送结束标记</span></span>
 <span class="line"><span>            final_chunk = {</span></span>
-<span class="line"><span>                "id": stream_id,</span></span>
-<span class="line"><span>                "object": "chat.completion.chunk",</span></span>
-<span class="line"><span>                "created": created,</span></span>
-<span class="line"><span>                "model": "qwen",</span></span>
-<span class="line"><span>                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]</span></span>
+<span class="line"><span>                &quot;id&quot;: stream_id,</span></span>
+<span class="line"><span>                &quot;object&quot;: &quot;chat.completion.chunk&quot;,</span></span>
+<span class="line"><span>                &quot;created&quot;: created,</span></span>
+<span class="line"><span>                &quot;model&quot;: &quot;qwen&quot;,</span></span>
+<span class="line"><span>                &quot;choices&quot;: [{&quot;index&quot;: 0, &quot;delta&quot;: {}, &quot;finish_reason&quot;: &quot;stop&quot;}]</span></span>
 <span class="line"><span>            }</span></span>
-<span class="line"><span>            yield f"data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n"</span></span>
-<span class="line"><span>            yield "data: [DONE]\n\n"</span></span>
+<span class="line"><span>            yield f&quot;data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n&quot;</span></span>
+<span class="line"><span>            yield &quot;data: [DONE]\n\n&quot;</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        return Response(</span></span>
 <span class="line"><span>            stream_with_context(generate()),</span></span>
-<span class="line"><span>            mimetype='text/event-stream',</span></span>
+<span class="line"><span>            mimetype=&#39;text/event-stream&#39;,</span></span>
 <span class="line"><span>            headers={</span></span>
-<span class="line"><span>                'Cache-Control': 'no-cache',</span></span>
-<span class="line"><span>                'X-Accel-Buffering': 'no',</span></span>
-<span class="line"><span>                'Content-Type': 'text/event-stream'</span></span>
+<span class="line"><span>                &#39;Cache-Control&#39;: &#39;no-cache&#39;,</span></span>
+<span class="line"><span>                &#39;X-Accel-Buffering&#39;: &#39;no&#39;,</span></span>
+<span class="line"><span>                &#39;Content-Type&#39;: &#39;text/event-stream&#39;</span></span>
 <span class="line"><span>            }</span></span>
 <span class="line"><span>        )</span></span>
 <span class="line"><span>                </span></span>
 <span class="line"><span>    except requests.exceptions.Timeout:</span></span>
-<span class="line"><span>        logger.error("llama-server超时")</span></span>
-<span class="line"><span>        return jsonify({'error': 'llama-server timeout'}), 504</span></span>
+<span class="line"><span>        logger.error(&quot;llama-server超时&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: &#39;llama-server timeout&#39;}), 504</span></span>
 <span class="line"><span>    except requests.exceptions.ConnectionError:</span></span>
-<span class="line"><span>        logger.error("llama-server连接失败")</span></span>
-<span class="line"><span>        return jsonify({'error': 'llama-server unavailable'}), 503</span></span>
+<span class="line"><span>        logger.error(&quot;llama-server连接失败&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: &#39;llama-server unavailable&#39;}), 503</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"转发流式请求失败: {e}")</span></span>
-<span class="line"><span>        return jsonify({'error': str(e)}), 500</span></span>
+<span class="line"><span>        logger.error(f&quot;转发流式请求失败: {e}&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: str(e)}), 500</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== API端点 ====================</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 访问Key验证</span></span>
-<span class="line"><span>API_KEY = os.environ.get('SEMANTIC_CACHE_API_KEY', 'ak_29e0LL4449GO4ao0Oz8kl7zd8Bm2o')</span></span>
+<span class="line"><span>API_KEY = os.environ.get(&#39;SEMANTIC_CACHE_API_KEY&#39;, &#39;ak_29e0LL4449GO4ao0Oz8kl7zd8Bm2o&#39;)</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>@app.route('/v1/chat/completions', methods=['POST'])</span></span>
+<span class="line"><span>@app.route(&#39;/v1/chat/completions&#39;, methods=[&#39;POST&#39;])</span></span>
 <span class="line"><span>def chat_completions():</span></span>
-<span class="line"><span>    """主入口：OpenClaw请求从这里进入"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;主入口：OpenClaw请求从这里进入&quot;&quot;&quot;</span></span>
 <span class="line"><span>	</span></span>
 <span class="line"><span>    # ===== API Key 验证 =====</span></span>
-<span class="line"><span>    api_key = request.headers.get('Authorization', '').replace('Bearer ', '')</span></span>
+<span class="line"><span>    api_key = request.headers.get(&#39;Authorization&#39;, &#39;&#39;).replace(&#39;Bearer &#39;, &#39;&#39;)</span></span>
 <span class="line"><span>    if api_key != API_KEY:</span></span>
-<span class="line"><span>        logger.warning(f"未授权的访问尝试: {request.remote_addr}")</span></span>
-<span class="line"><span>        return jsonify({'error': 'Unauthorized'}), 401</span></span>
+<span class="line"><span>        logger.warning(f&quot;未授权的访问尝试: {request.remote_addr}&quot;)</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: &#39;Unauthorized&#39;}), 401</span></span>
 <span class="line"><span>		</span></span>
 <span class="line"><span>    start_time = time.time()</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>    try:</span></span>
 <span class="line"><span>        data = request.json</span></span>
-<span class="line"><span>        messages = data.get('messages', [])</span></span>
-<span class="line"><span>        is_stream = data.get('stream', False)</span></span>
+<span class="line"><span>        messages = data.get(&#39;messages&#39;, [])</span></span>
+<span class="line"><span>        is_stream = data.get(&#39;stream&#39;, False)</span></span>
 <span class="line"><span>		</span></span>
 <span class="line"><span>        # ===== 打印完整的请求信息 =====</span></span>
-<span class="line"><span>        logger.info("=" * 80)</span></span>
-<span class="line"><span>        logger.info("📨 收到 OpenClaw 请求:")</span></span>
-<span class="line"><span>        logger.info(f"   流式模式: {is_stream}")</span></span>
-<span class="line"><span>        logger.info(f"   消息数量: {len(messages)}")</span></span>
-<span class="line"><span>        logger.info("-" * 40)</span></span>
+<span class="line"><span>        logger.info(&quot;=&quot; * 80)</span></span>
+<span class="line"><span>        logger.info(&quot;📨 收到 OpenClaw 请求:&quot;)</span></span>
+<span class="line"><span>        logger.info(f&quot;   流式模式: {is_stream}&quot;)</span></span>
+<span class="line"><span>        logger.info(f&quot;   消息数量: {len(messages)}&quot;)</span></span>
+<span class="line"><span>        logger.info(&quot;-&quot; * 40)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 打印每条消息的详细信息</span></span>
 <span class="line"><span>        for i, msg in enumerate(messages):</span></span>
-<span class="line"><span>            role = msg.get('role', 'unknown')</span></span>
-<span class="line"><span>            content = msg.get('content', '')</span></span>
-<span class="line"><span>            logger.info(f"   [{i}] role: {role}")</span></span>
+<span class="line"><span>            role = msg.get(&#39;role&#39;, &#39;unknown&#39;)</span></span>
+<span class="line"><span>            content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>            logger.info(f&quot;   [{i}] role: {role}&quot;)</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            if isinstance(content, str):</span></span>
 <span class="line"><span>                # 打印内容长度和预览</span></span>
-<span class="line"><span>                logger.info(f"       length: {len(content)} 字符")</span></span>
-<span class="line"><span>                logger.info(f"       preview: {content[:200]}...")</span></span>
+<span class="line"><span>                logger.info(f&quot;       length: {len(content)} 字符&quot;)</span></span>
+<span class="line"><span>                logger.info(f&quot;       preview: {content[:200]}...&quot;)</span></span>
 <span class="line"><span>            elif isinstance(content, list):</span></span>
-<span class="line"><span>                logger.info(f"       type: list, length: {len(content)}")</span></span>
+<span class="line"><span>                logger.info(f&quot;       type: list, length: {len(content)}&quot;)</span></span>
 <span class="line"><span>                for item in content:</span></span>
-<span class="line"><span>                    logger.info(f"       item: {item}")</span></span>
+<span class="line"><span>                    logger.info(f&quot;       item: {item}&quot;)</span></span>
 <span class="line"><span>            else:</span></span>
-<span class="line"><span>                logger.info(f"       content: {content}")</span></span>
+<span class="line"><span>                logger.info(f&quot;       content: {content}&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        # 打印系统消息汇总</span></span>
-<span class="line"><span>        system_messages = [m for m in messages if m.get('role') == 'system']</span></span>
+<span class="line"><span>        system_messages = [m for m in messages if m.get(&#39;role&#39;) == &#39;system&#39;]</span></span>
 <span class="line"><span>        if system_messages:</span></span>
-<span class="line"><span>            logger.info("-" * 40)</span></span>
-<span class="line"><span>            logger.info(f"📌 系统消息汇总 ({len(system_messages)} 条):")</span></span>
-<span class="line"><span>            total_system_chars = sum(len(m.get('content', '')) for m in system_messages if isinstance(m.get('content'), str))</span></span>
-<span class="line"><span>            logger.info(f"   总字符数: {total_system_chars}")</span></span>
+<span class="line"><span>            logger.info(&quot;-&quot; * 40)</span></span>
+<span class="line"><span>            logger.info(f&quot;📌 系统消息汇总 ({len(system_messages)} 条):&quot;)</span></span>
+<span class="line"><span>            total_system_chars = sum(len(m.get(&#39;content&#39;, &#39;&#39;)) for m in system_messages if isinstance(m.get(&#39;content&#39;), str))</span></span>
+<span class="line"><span>            logger.info(f&quot;   总字符数: {total_system_chars}&quot;)</span></span>
 <span class="line"><span>            for msg in system_messages:</span></span>
-<span class="line"><span>                content = msg.get('content', '')</span></span>
-<span class="line"><span>                logger.info(f"   - {content[:100]}...")</span></span>
+<span class="line"><span>                content = msg.get(&#39;content&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>                logger.info(f&quot;   - {content[:100]}...&quot;)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        logger.info("=" * 80)</span></span>
+<span class="line"><span>        logger.info(&quot;=&quot; * 80)</span></span>
 <span class="line"><span>        # ===== 打印结束 =====</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        user_query = extract_user_message(messages)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        logger.info(f"📝 用户查询: {user_query[:100] if user_query else 'None'}...")</span></span>
-<span class="line"><span>        logger.info(f"流式模式: {is_stream}")</span></span>
+<span class="line"><span>        logger.info(f&quot;📝 用户查询: {user_query[:100] if user_query else &#39;None&#39;}...&quot;)</span></span>
+<span class="line"><span>        logger.info(f&quot;流式模式: {is_stream}&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        if not user_query:</span></span>
-<span class="line"><span>            logger.info("没有有效的用户消息，直接转发")</span></span>
+<span class="line"><span>            logger.info(&quot;没有有效的用户消息，直接转发&quot;)</span></span>
 <span class="line"><span>            if is_stream:</span></span>
 <span class="line"><span>                return forward_to_llama_stream(data)</span></span>
 <span class="line"><span>            return forward_to_llama(data)</span></span>
@@ -1057,49 +1057,49 @@
 <span class="line"><span></span></span>
 <span class="line"><span>        if cached:</span></span>
 <span class="line"><span>            response_time = time.time() - start_time</span></span>
-<span class="line"><span>            logger.info(f"⚡ 缓存返回，耗时: {response_time:.3f}秒")</span></span>
-<span class="line"><span>            result = cached['response']</span></span>
+<span class="line"><span>            logger.info(f&quot;⚡ 缓存返回，耗时: {response_time:.3f}秒&quot;)</span></span>
+<span class="line"><span>            result = cached[&#39;response&#39;]</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            content = None</span></span>
 <span class="line"><span>            if isinstance(result, dict):</span></span>
-<span class="line"><span>                if 'choices' in result and result['choices']:</span></span>
-<span class="line"><span>                    content = result['choices'][0].get('message', {}).get('content', '')</span></span>
-<span class="line"><span>                elif 'content' in result:</span></span>
-<span class="line"><span>                    content = result['content']</span></span>
+<span class="line"><span>                if &#39;choices&#39; in result and result[&#39;choices&#39;]:</span></span>
+<span class="line"><span>                    content = result[&#39;choices&#39;][0].get(&#39;message&#39;, {}).get(&#39;content&#39;, &#39;&#39;)</span></span>
+<span class="line"><span>                elif &#39;content&#39; in result:</span></span>
+<span class="line"><span>                    content = result[&#39;content&#39;]</span></span>
 <span class="line"><span>                else:</span></span>
 <span class="line"><span>                    content = str(result)</span></span>
 <span class="line"><span>            else:</span></span>
 <span class="line"><span>                content = str(result)</span></span>
 <span class="line"><span>            </span></span>
 <span class="line"><span>            if is_stream:</span></span>
-<span class="line"><span>                logger.info(f"返回流式缓存响应，内容长度: {len(content)}")</span></span>
+<span class="line"><span>                logger.info(f&quot;返回流式缓存响应，内容长度: {len(content)}&quot;)</span></span>
 <span class="line"><span>                return Response(</span></span>
 <span class="line"><span>                    stream_with_context(stream_cached_response(content)),</span></span>
-<span class="line"><span>                    mimetype='text/event-stream',</span></span>
-<span class="line"><span>                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}</span></span>
+<span class="line"><span>                    mimetype=&#39;text/event-stream&#39;,</span></span>
+<span class="line"><span>                    headers={&#39;Cache-Control&#39;: &#39;no-cache&#39;, &#39;X-Accel-Buffering&#39;: &#39;no&#39;}</span></span>
 <span class="line"><span>                )</span></span>
 <span class="line"><span>            else:</span></span>
 <span class="line"><span>                if isinstance(result, dict):</span></span>
 <span class="line"><span>                    result = clean_response_for_openclaw(result)</span></span>
-<span class="line"><span>                    result['_cached'] = True</span></span>
+<span class="line"><span>                    result[&#39;_cached&#39;] = True</span></span>
 <span class="line"><span>                else:</span></span>
 <span class="line"><span>                    result = {</span></span>
-<span class="line"><span>                        'choices': [{'message': {'role': 'assistant', 'content': str(result)}, 'finish_reason': 'stop', 'index': 0}],</span></span>
-<span class="line"><span>                        '_cached': True,</span></span>
-<span class="line"><span>                        'id': f"chatcmpl-cache-{int(time.time())}",</span></span>
-<span class="line"><span>                        'created': int(time.time()),</span></span>
-<span class="line"><span>                        'object': 'chat.completion'</span></span>
+<span class="line"><span>                        &#39;choices&#39;: [{&#39;message&#39;: {&#39;role&#39;: &#39;assistant&#39;, &#39;content&#39;: str(result)}, &#39;finish_reason&#39;: &#39;stop&#39;, &#39;index&#39;: 0}],</span></span>
+<span class="line"><span>                        &#39;_cached&#39;: True,</span></span>
+<span class="line"><span>                        &#39;id&#39;: f&quot;chatcmpl-cache-{int(time.time())}&quot;,</span></span>
+<span class="line"><span>                        &#39;created&#39;: int(time.time()),</span></span>
+<span class="line"><span>                        &#39;object&#39;: &#39;chat.completion&#39;</span></span>
 <span class="line"><span>                    }</span></span>
 <span class="line"><span>                return jsonify(result)</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>        logger.info("🔄 缓存未命中，调用模型...")</span></span>
+<span class="line"><span>        logger.info(&quot;🔄 缓存未命中，调用模型...&quot;)</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        if is_stream:</span></span>
 <span class="line"><span>            return forward_to_llama_stream(data)</span></span>
 <span class="line"><span>        else:</span></span>
 <span class="line"><span>            llama_response = forward_to_llama(data)</span></span>
 <span class="line"><span>            </span></span>
-<span class="line"><span>            if hasattr(llama_response, 'status_code') and llama_response.status_code == 200:</span></span>
+<span class="line"><span>            if hasattr(llama_response, &#39;status_code&#39;) and llama_response.status_code == 200:</span></span>
 <span class="line"><span>                try:</span></span>
 <span class="line"><span>                    response_data = json.loads(llama_response.get_data(as_text=True))</span></span>
 <span class="line"><span>                    threading.Thread(</span></span>
@@ -1107,141 +1107,141 @@
 <span class="line"><span>                        args=(user_query, response_data, messages)</span></span>
 <span class="line"><span>                    ).start()</span></span>
 <span class="line"><span>                except Exception as e:</span></span>
-<span class="line"><span>                    logger.error(f"缓存存储失败: {e}")</span></span>
+<span class="line"><span>                    logger.error(f&quot;缓存存储失败: {e}&quot;)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>            response_time = time.time() - start_time</span></span>
-<span class="line"><span>            logger.info(f"🔄 模型返回，总耗时: {response_time:.3f}秒")</span></span>
+<span class="line"><span>            logger.info(f&quot;🔄 模型返回，总耗时: {response_time:.3f}秒&quot;)</span></span>
 <span class="line"><span>            return llama_response</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        logger.error(f"处理失败: {e}", exc_info=True)</span></span>
-<span class="line"><span>        if data and data.get('stream', False):</span></span>
+<span class="line"><span>        logger.error(f&quot;处理失败: {e}&quot;, exc_info=True)</span></span>
+<span class="line"><span>        if data and data.get(&#39;stream&#39;, False):</span></span>
 <span class="line"><span>            return forward_to_llama_stream(request.json)</span></span>
 <span class="line"><span>        return forward_to_llama(request.json)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>@app.route('/health', methods=['GET'])</span></span>
+<span class="line"><span>@app.route(&#39;/health&#39;, methods=[&#39;GET&#39;])</span></span>
 <span class="line"><span>def health():</span></span>
-<span class="line"><span>    """健康检查"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;健康检查&quot;&quot;&quot;</span></span>
 <span class="line"><span>    try:</span></span>
 <span class="line"><span>        redis_client.ping()</span></span>
 <span class="line"><span>        return jsonify({</span></span>
-<span class="line"><span>            'status': 'healthy',</span></span>
-<span class="line"><span>            'timestamp': datetime.now().isoformat(),</span></span>
-<span class="line"><span>            'cache_enabled': llmcache is not None</span></span>
+<span class="line"><span>            &#39;status&#39;: &#39;healthy&#39;,</span></span>
+<span class="line"><span>            &#39;timestamp&#39;: datetime.now().isoformat(),</span></span>
+<span class="line"><span>            &#39;cache_enabled&#39;: llmcache is not None</span></span>
 <span class="line"><span>        })</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        return jsonify({'status': 'unhealthy', 'error': str(e)}), 503</span></span>
+<span class="line"><span>        return jsonify({&#39;status&#39;: &#39;unhealthy&#39;, &#39;error&#39;: str(e)}), 503</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>@app.route('/stats', methods=['GET'])</span></span>
+<span class="line"><span>@app.route(&#39;/stats&#39;, methods=[&#39;GET&#39;])</span></span>
 <span class="line"><span>def stats():</span></span>
-<span class="line"><span>    """缓存统计"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;缓存统计&quot;&quot;&quot;</span></span>
 <span class="line"><span>    stats = {</span></span>
-<span class="line"><span>        'hits': int(redis_client.get('stats:cache:hits') or 0),</span></span>
-<span class="line"><span>        'misses': int(redis_client.get('stats:cache:misses') or 0),</span></span>
-<span class="line"><span>        'stores': int(redis_client.get('stats:cache:stores') or 0),</span></span>
-<span class="line"><span>        'skipped_time_sensitive': int(redis_client.get('stats:cache:skip_time_sensitive:total') or 0)</span></span>
+<span class="line"><span>        &#39;hits&#39;: int(redis_client.get(&#39;stats:cache:hits&#39;) or 0),</span></span>
+<span class="line"><span>        &#39;misses&#39;: int(redis_client.get(&#39;stats:cache:misses&#39;) or 0),</span></span>
+<span class="line"><span>        &#39;stores&#39;: int(redis_client.get(&#39;stats:cache:stores&#39;) or 0),</span></span>
+<span class="line"><span>        &#39;skipped_time_sensitive&#39;: int(redis_client.get(&#39;stats:cache:skip_time_sensitive:total&#39;) or 0)</span></span>
 <span class="line"><span>    }</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>    total = stats['hits'] + stats['misses']</span></span>
-<span class="line"><span>    stats['hit_rate'] = round(stats['hits'] * 100 / total, 2) if total > 0 else 0</span></span>
+<span class="line"><span>    total = stats[&#39;hits&#39;] + stats[&#39;misses&#39;]</span></span>
+<span class="line"><span>    stats[&#39;hit_rate&#39;] = round(stats[&#39;hits&#39;] * 100 / total, 2) if total &gt; 0 else 0</span></span>
 <span class="line"><span>    return jsonify(stats)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>@app.route('/cache/clear', methods=['POST'])</span></span>
+<span class="line"><span>@app.route(&#39;/cache/clear&#39;, methods=[&#39;POST&#39;])</span></span>
 <span class="line"><span>def clear_cache():</span></span>
-<span class="line"><span>    """清理缓存（管理员用）"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;清理缓存（管理员用）&quot;&quot;&quot;</span></span>
 <span class="line"><span>    try:</span></span>
 <span class="line"><span>        if llmcache:</span></span>
 <span class="line"><span>            llmcache.clear()</span></span>
-<span class="line"><span>        redis_client.delete('stats:cache:hits', 'stats:cache:misses', 'stats:cache:stores')</span></span>
-<span class="line"><span>        return jsonify({'status': 'cleared'})</span></span>
+<span class="line"><span>        redis_client.delete(&#39;stats:cache:hits&#39;, &#39;stats:cache:misses&#39;, &#39;stats:cache:stores&#39;)</span></span>
+<span class="line"><span>        return jsonify({&#39;status&#39;: &#39;cleared&#39;})</span></span>
 <span class="line"><span>    except Exception as e:</span></span>
-<span class="line"><span>        return jsonify({'error': str(e)}), 500</span></span>
+<span class="line"><span>        return jsonify({&#39;error&#39;: str(e)}), 500</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 后台任务 ====================</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>def cleanup_old_entries():</span></span>
-<span class="line"><span>    """后台清理过期缓存条目"""</span></span>
+<span class="line"><span>    &quot;&quot;&quot;后台清理过期缓存条目&quot;&quot;&quot;</span></span>
 <span class="line"><span>    while True:</span></span>
 <span class="line"><span>        try:</span></span>
 <span class="line"><span>            time.sleep(3600)</span></span>
-<span class="line"><span>            logger.info("🧹 开始清理过期缓存...")</span></span>
-<span class="line"><span>            logger.info("✅ 清理完成")</span></span>
+<span class="line"><span>            logger.info(&quot;🧹 开始清理过期缓存...&quot;)</span></span>
+<span class="line"><span>            logger.info(&quot;✅ 清理完成&quot;)</span></span>
 <span class="line"><span>        except Exception as e:</span></span>
-<span class="line"><span>            logger.error(f"清理失败: {e}")</span></span>
+<span class="line"><span>            logger.error(f&quot;清理失败: {e}&quot;)</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>cleanup_thread = threading.Thread(target=cleanup_old_entries, daemon=True)</span></span>
 <span class="line"><span>cleanup_thread.start()</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># ==================== 启动服务 ====================</span></span>
-<span class="line"><span>if __name__ == '__main__':</span></span>
-<span class="line"><span>    logger.info("🚀 启动语义缓存服务...")</span></span>
-<span class="line"><span>    logger.info(f"   端口: {CACHE_PORT}")</span></span>
-<span class="line"><span>    logger.info(f"   Redis: {REDIS_HOST}:{REDIS_PORT}")</span></span>
-<span class="line"><span>    logger.info(f"   LLAMA: {LLAMA_SERVER_URL}")</span></span>
-<span class="line"><span>    logger.info("=================================")</span></span>
-<span class="line"><span>    app.run(host='0.0.0.0', port=CACHE_PORT, debug=False, threaded=True)</span></span>
+<span class="line"><span>if __name__ == &#39;__main__&#39;:</span></span>
+<span class="line"><span>    logger.info(&quot;🚀 启动语义缓存服务...&quot;)</span></span>
+<span class="line"><span>    logger.info(f&quot;   端口: {CACHE_PORT}&quot;)</span></span>
+<span class="line"><span>    logger.info(f&quot;   Redis: {REDIS_HOST}:{REDIS_PORT}&quot;)</span></span>
+<span class="line"><span>    logger.info(f&quot;   LLAMA: {LLAMA_SERVER_URL}&quot;)</span></span>
+<span class="line"><span>    logger.info(&quot;=================================&quot;)</span></span>
+<span class="line"><span>    app.run(host=&#39;0.0.0.0&#39;, port=CACHE_PORT, debug=False, threaded=True)</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="22-创建启动脚本-start_semantic_cachesh">2.2 创建启动脚本 <code>start_semantic_cache.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/start_semantic_cache.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>cd /opt/ai-agent</span></span>
 <span class="line"><span>source venv/bin/activate</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>LOG_DIR="/opt/ai-agent/logs"</span></span>
-<span class="line"><span>PID_DIR="/opt/ai-agent/pids"</span></span>
-<span class="line"><span>mkdir -p "$LOG_DIR" "$PID_DIR"</span></span>
+<span class="line"><span>LOG_DIR=&quot;/opt/ai-agent/logs&quot;</span></span>
+<span class="line"><span>PID_DIR=&quot;/opt/ai-agent/pids&quot;</span></span>
+<span class="line"><span>mkdir -p &quot;$LOG_DIR&quot; &quot;$PID_DIR&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止旧实例</span></span>
-<span class="line"><span>if [ -f "${PID_DIR}/semantic_cache.pid" ]; then</span></span>
-<span class="line"><span>    OLD_PID=$(cat "${PID_DIR}/semantic_cache.pid")</span></span>
-<span class="line"><span>    if kill -0 "$OLD_PID" 2>/dev/null; then</span></span>
-<span class="line"><span>        echo "🛑 停止旧语义缓存服务 (PID: $OLD_PID)..."</span></span>
-<span class="line"><span>        kill "$OLD_PID"</span></span>
+<span class="line"><span>if [ -f &quot;${PID_DIR}/semantic_cache.pid&quot; ]; then</span></span>
+<span class="line"><span>    OLD_PID=$(cat &quot;${PID_DIR}/semantic_cache.pid&quot;)</span></span>
+<span class="line"><span>    if kill -0 &quot;$OLD_PID&quot; 2&gt;/dev/null; then</span></span>
+<span class="line"><span>        echo &quot;🛑 停止旧语义缓存服务 (PID: $OLD_PID)...&quot;</span></span>
+<span class="line"><span>        kill &quot;$OLD_PID&quot;</span></span>
 <span class="line"><span>        sleep 3</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "🚀 启动语义缓存服务..."</span></span>
+<span class="line"><span>echo &quot;🚀 启动语义缓存服务...&quot;</span></span>
 <span class="line"><span>nohup python3 semantic_cache_service.py \</span></span>
-<span class="line"><span>    > "${LOG_DIR}/semantic_cache.log" 2>&#x26;1 &#x26;</span></span>
+<span class="line"><span>    &gt; &quot;${LOG_DIR}/semantic_cache.log&quot; 2&gt;&amp;1 &amp;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>PID=$!</span></span>
-<span class="line"><span>echo $PID > "${PID_DIR}/semantic_cache.pid"</span></span>
+<span class="line"><span>echo $PID &gt; &quot;${PID_DIR}/semantic_cache.pid&quot;</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "✅ 语义缓存服务已启动 (PID: $PID)"</span></span>
-<span class="line"><span>echo "   端口: 9001"</span></span>
-<span class="line"><span>echo "   日志: tail -f ${LOG_DIR}/semantic_cache.log"</span></span>
+<span class="line"><span>echo &quot;✅ 语义缓存服务已启动 (PID: $PID)&quot;</span></span>
+<span class="line"><span>echo &quot;   端口: 9001&quot;</span></span>
+<span class="line"><span>echo &quot;   日志: tail -f ${LOG_DIR}/semantic_cache.log&quot;</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="23-创建启动脚本-start_llama_singlesh">2.3 创建启动脚本 <code>start_llama_single.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/start_llama_longcontext.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>cd /opt/ai-agent</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>LLAMA_SERVER="/opt/ai-agent/llama.cpp/build/bin/llama-server"</span></span>
-<span class="line"><span>MODEL_PATH="/opt/ai-agent/models/Qwen3.5-35B-A3B-GGUF/Qwen3.5-35B-A3B-Q4_K_M.gguf"</span></span>
+<span class="line"><span>LLAMA_SERVER=&quot;/opt/ai-agent/llama.cpp/build/bin/llama-server&quot;</span></span>
+<span class="line"><span>MODEL_PATH=&quot;/opt/ai-agent/models/Qwen3.5-35B-A3B-GGUF/Qwen3.5-35B-A3B-Q4_K_M.gguf&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>mkdir -p logs pids</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止旧进程</span></span>
 <span class="line"><span>if [ -f pids/llama-server.pid ]; then</span></span>
 <span class="line"><span>    OLD_PID=$(cat pids/llama-server.pid)</span></span>
-<span class="line"><span>    if kill -0 $OLD_PID 2>/dev/null; then</span></span>
-<span class="line"><span>        echo "🛑 停止旧进程 (PID: $OLD_PID)..."</span></span>
+<span class="line"><span>    if kill -0 $OLD_PID 2&gt;/dev/null; then</span></span>
+<span class="line"><span>        echo &quot;🛑 停止旧进程 (PID: $OLD_PID)...&quot;</span></span>
 <span class="line"><span>        kill $OLD_PID</span></span>
 <span class="line"><span>        sleep 3</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 设置 CPU 性能模式</span></span>
-<span class="line"><span>echo "⚙️  优化 CPU 设置..."</span></span>
-<span class="line"><span>echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2>/dev/null || true</span></span>
+<span class="line"><span>echo &quot;⚙️  优化 CPU 设置...&quot;</span></span>
+<span class="line"><span>echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor 2&gt;/dev/null || true</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 环境变量优化</span></span>
 <span class="line"><span>export OMP_NUM_THREADS=20</span></span>
@@ -1249,13 +1249,13 @@
 <span class="line"><span>export OMP_WAIT_POLICY=active</span></span>
 <span class="line"><span>export OMP_PROC_BIND=spread</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "🚀 启动 llama-server..."</span></span>
-<span class="line"><span>echo "   模型: $(basename $MODEL_PATH)"</span></span>
-<span class="line"><span>echo "   端口: 7071"</span></span>
+<span class="line"><span>echo &quot;🚀 启动 llama-server...&quot;</span></span>
+<span class="line"><span>echo &quot;   模型: $(basename $MODEL_PATH)&quot;</span></span>
+<span class="line"><span>echo &quot;   端口: 7071&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 启动参数</span></span>
-<span class="line"><span>nohup "$LLAMA_SERVER" \</span></span>
-<span class="line"><span>    -m "$MODEL_PATH" \</span></span>
+<span class="line"><span>nohup &quot;$LLAMA_SERVER&quot; \</span></span>
+<span class="line"><span>    -m &quot;$MODEL_PATH&quot; \</span></span>
 <span class="line"><span>    --host 0.0.0.0 \</span></span>
 <span class="line"><span>    --port 7071 \</span></span>
 <span class="line"><span>    -t 20 \</span></span>
@@ -1268,108 +1268,108 @@
 <span class="line"><span>    --cache-type-v q4_0 \</span></span>
 <span class="line"><span>    --flash-attn auto \</span></span>
 <span class="line"><span>    --no-mmap \</span></span>
-<span class="line"><span>    > logs/llama-server-7071.log 2>&#x26;1 &#x26;</span></span>
+<span class="line"><span>    &gt; logs/llama-server-7071.log 2&gt;&amp;1 &amp;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>PID=$!</span></span>
-<span class="line"><span>echo $PID > pids/llama-server.pid</span></span>
+<span class="line"><span>echo $PID &gt; pids/llama-server.pid</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>sleep 5</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 验证启动</span></span>
-<span class="line"><span>if kill -0 $PID 2>/dev/null; then</span></span>
-<span class="line"><span>    echo "✅ llama-server 已启动 (PID: $PID)"</span></span>
+<span class="line"><span>if kill -0 $PID 2&gt;/dev/null; then</span></span>
+<span class="line"><span>    echo &quot;✅ llama-server 已启动 (PID: $PID)&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 设置 CPU 亲和性</span></span>
-<span class="line"><span>    taskset -cp 0-19 $PID 2>/dev/null &#x26;&#x26; echo "✅ CPU 亲和性已设置"</span></span>
+<span class="line"><span>    taskset -cp 0-19 $PID 2&gt;/dev/null &amp;&amp; echo &quot;✅ CPU 亲和性已设置&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    # 显示内存状态</span></span>
-<span class="line"><span>    echo ""</span></span>
-<span class="line"><span>    echo "📊 内存状态:"</span></span>
-<span class="line"><span>    grep -E "VmRSS|Mlocked" /proc/$PID/status 2>/dev/null | while read line; do</span></span>
-<span class="line"><span>        echo "   $line"</span></span>
+<span class="line"><span>    echo &quot;&quot;</span></span>
+<span class="line"><span>    echo &quot;📊 内存状态:&quot;</span></span>
+<span class="line"><span>    grep -E &quot;VmRSS|Mlocked&quot; /proc/$PID/status 2&gt;/dev/null | while read line; do</span></span>
+<span class="line"><span>        echo &quot;   $line&quot;</span></span>
 <span class="line"><span>    done</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    echo ""</span></span>
-<span class="line"><span>    echo "📝 查看日志: tail -f logs/llama-server-7071.log"</span></span>
-<span class="line"><span>    echo "🛑 停止服务: kill $PID"</span></span>
+<span class="line"><span>    echo &quot;&quot;</span></span>
+<span class="line"><span>    echo &quot;📝 查看日志: tail -f logs/llama-server-7071.log&quot;</span></span>
+<span class="line"><span>    echo &quot;🛑 停止服务: kill $PID&quot;</span></span>
 <span class="line"><span>else</span></span>
-<span class="line"><span>    echo "❌ 启动失败，请检查日志"</span></span>
+<span class="line"><span>    echo &quot;❌ 启动失败，请检查日志&quot;</span></span>
 <span class="line"><span>    tail -20 logs/llama-server-7071.log</span></span>
 <span class="line"><span>    exit 1</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="24-创建启动脚本-stop_agentsh">2.4 创建启动脚本 <code>stop_agent.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/stop_agent.sh</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "🛑 停止 llama-server..."</span></span>
+<span class="line"><span>echo &quot;🛑 停止 llama-server...&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止 llama-server</span></span>
-<span class="line"><span>if [ -f "pids/llama-server.pid" ]; then</span></span>
+<span class="line"><span>if [ -f &quot;pids/llama-server.pid&quot; ]; then</span></span>
 <span class="line"><span>    PID=$(cat pids/llama-server.pid)</span></span>
-<span class="line"><span>    if kill -0 "$PID" 2>/dev/null; then</span></span>
-<span class="line"><span>        echo "停止 llama-server (PID: $PID)..."</span></span>
-<span class="line"><span>        kill "$PID"</span></span>
+<span class="line"><span>    if kill -0 &quot;$PID&quot; 2&gt;/dev/null; then</span></span>
+<span class="line"><span>        echo &quot;停止 llama-server (PID: $PID)...&quot;</span></span>
+<span class="line"><span>        kill &quot;$PID&quot;</span></span>
 <span class="line"><span>        sleep 2</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>    rm -f pids/llama-server.pid</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 确保没有残留进程</span></span>
-<span class="line"><span>pkill -f "llama-server" 2>/dev/null</span></span>
+<span class="line"><span>pkill -f &quot;llama-server&quot; 2&gt;/dev/null</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "✅ llama-server 已停止"</span></span>
+<span class="line"><span>echo &quot;✅ llama-server 已停止&quot;</span></span>
 <span class="line"><span></span></span></code></pre>
 <h2 id="第三阶段修改-openclaw-配置">第三阶段：修改 OpenClaw 配置</h2>
 <p>Ai agent以OpenClaw为例</p>
 <h3 id="31-更新-openclaw-配置">3.1 更新 OpenClaw 配置</h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span># 备份原配置</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span># 备份原配置</span></span>
 <span class="line"><span>cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 编辑配置指向语义缓存</span></span>
-<span class="line"><span>cat > ~/.openclaw/openclaw.json &#x3C;&#x3C; 'EOF'</span></span>
+<span class="line"><span>cat &gt; ~/.openclaw/openclaw.json &lt;&lt; &#39;EOF&#39;</span></span>
 <span class="line"><span>{</span></span>
-<span class="line"><span>  "models": {</span></span>
-<span class="line"><span>    "providers": {</span></span>
-<span class="line"><span>      "local-llama": {</span></span>
-<span class="line"><span>        "baseUrl": "http://172.20.25.155:9001/v1",</span></span>
-<span class="line"><span>        "apiKey": "not-needed",</span></span>
-<span class="line"><span>        "api": "openai-completions",</span></span>
-<span class="line"><span>        "models": [</span></span>
+<span class="line"><span>  &quot;models&quot;: {</span></span>
+<span class="line"><span>    &quot;providers&quot;: {</span></span>
+<span class="line"><span>      &quot;local-llama&quot;: {</span></span>
+<span class="line"><span>        &quot;baseUrl&quot;: &quot;http://172.20.25.155:9001/v1&quot;,</span></span>
+<span class="line"><span>        &quot;apiKey&quot;: &quot;not-needed&quot;,</span></span>
+<span class="line"><span>        &quot;api&quot;: &quot;openai-completions&quot;,</span></span>
+<span class="line"><span>        &quot;models&quot;: [</span></span>
 <span class="line"><span>          {</span></span>
-<span class="line"><span>            "id": "qwen3.5-35b",</span></span>
-<span class="line"><span>            "name": "Qwen3.5-35B-A3B (本地+缓存)",</span></span>
-<span class="line"><span>            "api": "openai-completions",</span></span>
-<span class="line"><span>            "reasoning": false,</span></span>
-<span class="line"><span>            "input": ["text"],</span></span>
-<span class="line"><span>            "contextWindow": 16384,</span></span>
-<span class="line"><span>            "maxTokens": 4096</span></span>
+<span class="line"><span>            &quot;id&quot;: &quot;qwen3.5-35b&quot;,</span></span>
+<span class="line"><span>            &quot;name&quot;: &quot;Qwen3.5-35B-A3B (本地+缓存)&quot;,</span></span>
+<span class="line"><span>            &quot;api&quot;: &quot;openai-completions&quot;,</span></span>
+<span class="line"><span>            &quot;reasoning&quot;: false,</span></span>
+<span class="line"><span>            &quot;input&quot;: [&quot;text&quot;],</span></span>
+<span class="line"><span>            &quot;contextWindow&quot;: 16384,</span></span>
+<span class="line"><span>            &quot;maxTokens&quot;: 4096</span></span>
 <span class="line"><span>          }</span></span>
 <span class="line"><span>        ]</span></span>
 <span class="line"><span>      }</span></span>
 <span class="line"><span>    }</span></span>
 <span class="line"><span>  },</span></span>
-<span class="line"><span>  "agents": {</span></span>
-<span class="line"><span>    "defaults": {</span></span>
-<span class="line"><span>      "model": {</span></span>
-<span class="line"><span>        "primary": "local-llama/qwen3.5-35b"</span></span>
+<span class="line"><span>  &quot;agents&quot;: {</span></span>
+<span class="line"><span>    &quot;defaults&quot;: {</span></span>
+<span class="line"><span>      &quot;model&quot;: {</span></span>
+<span class="line"><span>        &quot;primary&quot;: &quot;local-llama/qwen3.5-35b&quot;</span></span>
 <span class="line"><span>      },</span></span>
-<span class="line"><span>      "models": {</span></span>
-<span class="line"><span>        "local-llama/qwen3.5-35b": {</span></span>
-<span class="line"><span>          "alias": "本地35B+语义缓存"</span></span>
+<span class="line"><span>      &quot;models&quot;: {</span></span>
+<span class="line"><span>        &quot;local-llama/qwen3.5-35b&quot;: {</span></span>
+<span class="line"><span>          &quot;alias&quot;: &quot;本地35B+语义缓存&quot;</span></span>
 <span class="line"><span>        }</span></span>
 <span class="line"><span>      },</span></span>
-<span class="line"><span>      "skipBootstrap": true,</span></span>
-<span class="line"><span>      "memorySearch": {</span></span>
-<span class="line"><span>        "enabled": true</span></span>
+<span class="line"><span>      &quot;skipBootstrap&quot;: true,</span></span>
+<span class="line"><span>      &quot;memorySearch&quot;: {</span></span>
+<span class="line"><span>        &quot;enabled&quot;: true</span></span>
 <span class="line"><span>      }</span></span>
 <span class="line"><span>    }</span></span>
 <span class="line"><span>  },</span></span>
-<span class="line"><span>  "openai_compatible": {</span></span>
-<span class="line"><span>    "api_type": "openai",</span></span>
-<span class="line"><span>    "api_base": "http://192.168.1.100:9001/v1",</span></span>
-<span class="line"><span>    "api_key": "not-needed",</span></span>
-<span class="line"><span>    "send_full_history": true</span></span>
+<span class="line"><span>  &quot;openai_compatible&quot;: {</span></span>
+<span class="line"><span>    &quot;api_type&quot;: &quot;openai&quot;,</span></span>
+<span class="line"><span>    &quot;api_base&quot;: &quot;http://192.168.1.100:9001/v1&quot;,</span></span>
+<span class="line"><span>    &quot;api_key&quot;: &quot;not-needed&quot;,</span></span>
+<span class="line"><span>    &quot;send_full_history&quot;: true</span></span>
 <span class="line"><span>  }</span></span>
 <span class="line"><span>}</span></span>
 <span class="line"><span>EOF</span></span>
@@ -1377,145 +1377,145 @@
 <p><strong>注意</strong>：将 <code>192.168.1.100</code> 替换为你的实际服务器 IP。</p>
 <h2 id="-第四阶段监控和统计">📊 第四阶段：监控和统计</h2>
 <h3 id="41-创建缓存监控脚本-cache_monitorsh">4.1 创建缓存监控脚本 <code>cache_monitor.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/cache_monitor.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>while true; do</span></span>
 <span class="line"><span>    clear</span></span>
-<span class="line"><span>    echo "================================================"</span></span>
-<span class="line"><span>    echo "📊 语义缓存监控 - $(date '+%Y-%m-%d %H:%M:%S')"</span></span>
-<span class="line"><span>    echo "================================================"</span></span>
+<span class="line"><span>    echo &quot;================================================&quot;</span></span>
+<span class="line"><span>    echo &quot;📊 语义缓存监控 - $(date &#39;+%Y-%m-%d %H:%M:%S&#39;)&quot;</span></span>
+<span class="line"><span>    echo &quot;================================================&quot;</span></span>
 <span class="line"><span>    </span></span>
 <span class="line"><span>    stats=$(curl -s http://localhost:9001/stats)</span></span>
-<span class="line"><span>    if [ ! -z "$stats" ]; then</span></span>
-<span class="line"><span>        hits=$(echo "$stats" | jq '.hits')</span></span>
-<span class="line"><span>        misses=$(echo "$stats" | jq '.misses')</span></span>
-<span class="line"><span>        hit_rate=$(echo "$stats" | jq '.hit_rate')</span></span>
+<span class="line"><span>    if [ ! -z &quot;$stats&quot; ]; then</span></span>
+<span class="line"><span>        hits=$(echo &quot;$stats&quot; | jq &#39;.hits&#39;)</span></span>
+<span class="line"><span>        misses=$(echo &quot;$stats&quot; | jq &#39;.misses&#39;)</span></span>
+<span class="line"><span>        hit_rate=$(echo &quot;$stats&quot; | jq &#39;.hit_rate&#39;)</span></span>
 <span class="line"><span>        </span></span>
-<span class="line"><span>        echo -e "\n📈 缓存统计:"</span></span>
-<span class="line"><span>        echo "   命中次数: $hits"</span></span>
-<span class="line"><span>        echo "   未命中次数: $misses"</span></span>
-<span class="line"><span>        echo "   命中率: ${hit_rate}%"</span></span>
+<span class="line"><span>        echo -e &quot;\n📈 缓存统计:&quot;</span></span>
+<span class="line"><span>        echo &quot;   命中次数: $hits&quot;</span></span>
+<span class="line"><span>        echo &quot;   未命中次数: $misses&quot;</span></span>
+<span class="line"><span>        echo &quot;   命中率: ${hit_rate}%&quot;</span></span>
 <span class="line"><span>        </span></span>
 <span class="line"><span>        total=$((hits + misses))</span></span>
 <span class="line"><span>        if [ $total -gt 0 ]; then</span></span>
 <span class="line"><span>            saved_seconds=$((hits * 8))</span></span>
-<span class="line"><span>            echo "   节省时间: ${saved_seconds}秒 ≈ $((saved_seconds / 60))分钟"</span></span>
+<span class="line"><span>            echo &quot;   节省时间: ${saved_seconds}秒 ≈ $((saved_seconds / 60))分钟&quot;</span></span>
 <span class="line"><span>        fi</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    redis_mem=$(redis-cli INFO memory | grep used_memory_human | cut -d':' -f2)</span></span>
-<span class="line"><span>    echo -e "\n💾 Redis内存: $redis_mem"</span></span>
+<span class="line"><span>    redis_mem=$(redis-cli INFO memory | grep used_memory_human | cut -d&#39;:&#39; -f2)</span></span>
+<span class="line"><span>    echo -e &quot;\n💾 Redis内存: $redis_mem&quot;</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    echo -e "\n================================================"</span></span>
-<span class="line"><span>    echo "刷新间隔: 10秒 (按 Ctrl+C 退出)"</span></span>
+<span class="line"><span>    echo -e &quot;\n================================================&quot;</span></span>
+<span class="line"><span>    echo &quot;刷新间隔: 10秒 (按 Ctrl+C 退出)&quot;</span></span>
 <span class="line"><span>    sleep 10</span></span>
 <span class="line"><span>done</span></span>
 <span class="line"><span></span></span></code></pre>
 <h2 id="-第五阶段一键启动全流程">🚀 第五阶段：一键启动全流程</h2>
 <h3 id="51-更新主启动脚本-start_allsh">5.1 更新主启动脚本 <code>start_all.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/start_all.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span>cd /opt/ai-agent</span></span>
 <span class="line"><span>source venv/bin/activate</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "================================================"</span></span>
-<span class="line"><span>echo "🚀 启动 AI Agent 服务 (单实例+语义缓存)"</span></span>
-<span class="line"><span>echo "================================================"</span></span>
-<span class="line"><span>echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"</span></span>
-<span class="line"><span>echo ""</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
+<span class="line"><span>echo &quot;🚀 启动 AI Agent 服务 (单实例+语义缓存)&quot;</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
+<span class="line"><span>echo &quot;时间: $(date &#39;+%Y-%m-%d %H:%M:%S&#39;)&quot;</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 1. 检查 Redis 服务</span></span>
-<span class="line"><span>echo "[1/4] 检查 Redis 服务..."</span></span>
-<span class="line"><span>if redis-cli ping > /dev/null 2>&#x26;1; then</span></span>
-<span class="line"><span>    echo "  ✅ Redis 运行中"</span></span>
+<span class="line"><span>echo &quot;[1/4] 检查 Redis 服务...&quot;</span></span>
+<span class="line"><span>if redis-cli ping &gt; /dev/null 2&gt;&amp;1; then</span></span>
+<span class="line"><span>    echo &quot;  ✅ Redis 运行中&quot;</span></span>
 <span class="line"><span>    </span></span>
-<span class="line"><span>    if redis-cli MODULE LIST | grep -q -E "(ft|search)"; then</span></span>
-<span class="line"><span>        echo "  ✅ RediSearch 模块已加载"</span></span>
+<span class="line"><span>    if redis-cli MODULE LIST | grep -q -E &quot;(ft|search)&quot;; then</span></span>
+<span class="line"><span>        echo &quot;  ✅ RediSearch 模块已加载&quot;</span></span>
 <span class="line"><span>    else</span></span>
-<span class="line"><span>        echo "  ⚠️ RediSearch 模块未加载，请检查 redis-stack-server 安装"</span></span>
+<span class="line"><span>        echo &quot;  ⚠️ RediSearch 模块未加载，请检查 redis-stack-server 安装&quot;</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>else</span></span>
-<span class="line"><span>    echo "  ❌ Redis 未运行，请先启动: sudo systemctl start redis-stack-server"</span></span>
+<span class="line"><span>    echo &quot;  ❌ Redis 未运行，请先启动: sudo systemctl start redis-stack-server&quot;</span></span>
 <span class="line"><span>    exit 1</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 2. 检查 llama-server</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "[2/4] 检查 llama-server..."</span></span>
-<span class="line"><span>if curl -s http://localhost:7071/health > /dev/null; then</span></span>
-<span class="line"><span>    echo "  ✅ llama-server 运行中"</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;[2/4] 检查 llama-server...&quot;</span></span>
+<span class="line"><span>if curl -s http://localhost:7071/health &gt; /dev/null; then</span></span>
+<span class="line"><span>    echo &quot;  ✅ llama-server 运行中&quot;</span></span>
 <span class="line"><span>else</span></span>
-<span class="line"><span>    echo "  🚀 启动 llama-server..."</span></span>
+<span class="line"><span>    echo &quot;  🚀 启动 llama-server...&quot;</span></span>
 <span class="line"><span>    ./start_llama_single.sh</span></span>
 <span class="line"><span>fi</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 3. 启动语义缓存服务</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "[3/4] 启动语义缓存服务..."</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;[3/4] 启动语义缓存服务...&quot;</span></span>
 <span class="line"><span>./start_semantic_cache.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 4. 等待服务启动</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "⏳ 等待服务启动..."</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;⏳ 等待服务启动...&quot;</span></span>
 <span class="line"><span>sleep 5</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 5. 验证服务</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "[4/4] 验证服务状态..."</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;[4/4] 验证服务状态...&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 等待服务启动（最多等待10秒）</span></span>
 <span class="line"><span>MAX_RETRIES=10</span></span>
 <span class="line"><span>RETRY=0</span></span>
 <span class="line"><span>while [ $RETRY -lt $MAX_RETRIES ]; do</span></span>
-<span class="line"><span>    if curl -s http://localhost:9001/health > /dev/null 2>&#x26;1; then</span></span>
-<span class="line"><span>        echo "  ✅ 语义缓存服务: 运行中"</span></span>
+<span class="line"><span>    if curl -s http://localhost:9001/health &gt; /dev/null 2&gt;&amp;1; then</span></span>
+<span class="line"><span>        echo &quot;  ✅ 语义缓存服务: 运行中&quot;</span></span>
 <span class="line"><span>        break</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>    RETRY=$((RETRY + 1))</span></span>
 <span class="line"><span>    if [ $RETRY -eq $MAX_RETRIES ]; then</span></span>
-<span class="line"><span>        echo "  ❌ 语义缓存服务启动失败（超时）"</span></span>
-<span class="line"><span>        echo "  查看日志: tail -20 logs/semantic_cache.log"</span></span>
+<span class="line"><span>        echo &quot;  ❌ 语义缓存服务启动失败（超时）&quot;</span></span>
+<span class="line"><span>        echo &quot;  查看日志: tail -20 logs/semantic_cache.log&quot;</span></span>
 <span class="line"><span>    else</span></span>
-<span class="line"><span>        echo "  ⏳ 等待服务启动... ($RETRY/$MAX_RETRIES)"</span></span>
+<span class="line"><span>        echo &quot;  ⏳ 等待服务启动... ($RETRY/$MAX_RETRIES)&quot;</span></span>
 <span class="line"><span>        sleep 1</span></span>
 <span class="line"><span>    fi</span></span>
 <span class="line"><span>done</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "================================================"</span></span>
-<span class="line"><span>echo "✅ 所有服务已启动"</span></span>
-<span class="line"><span>echo "================================================"</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "📊 服务端口:"</span></span>
-<span class="line"><span>echo "   - 语义缓存: http://localhost:9001"</span></span>
-<span class="line"><span>echo "   - llama-server: http://localhost:7071"</span></span>
-<span class="line"><span>echo "   - Redis: localhost:6379"</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "📝 日志文件:"</span></span>
-<span class="line"><span>echo "   - tail -f logs/semantic_cache.log"</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "📈 监控命令:"</span></span>
-<span class="line"><span>echo "   - 缓存统计: curl http://localhost:9001/stats | jq ."</span></span>
-<span class="line"><span>echo "   - 实时监控: ./cache_monitor.sh"</span></span>
-<span class="line"><span>echo ""</span></span>
-<span class="line"><span>echo "🛑 停止服务: ./stop_all.sh"</span></span>
-<span class="line"><span>echo "================================================"</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
+<span class="line"><span>echo &quot;✅ 所有服务已启动&quot;</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;📊 服务端口:&quot;</span></span>
+<span class="line"><span>echo &quot;   - 语义缓存: http://localhost:9001&quot;</span></span>
+<span class="line"><span>echo &quot;   - llama-server: http://localhost:7071&quot;</span></span>
+<span class="line"><span>echo &quot;   - Redis: localhost:6379&quot;</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;📝 日志文件:&quot;</span></span>
+<span class="line"><span>echo &quot;   - tail -f logs/semantic_cache.log&quot;</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;📈 监控命令:&quot;</span></span>
+<span class="line"><span>echo &quot;   - 缓存统计: curl http://localhost:9001/stats | jq .&quot;</span></span>
+<span class="line"><span>echo &quot;   - 实时监控: ./cache_monitor.sh&quot;</span></span>
+<span class="line"><span>echo &quot;&quot;</span></span>
+<span class="line"><span>echo &quot;🛑 停止服务: ./stop_all.sh&quot;</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
 <span class="line"><span></span></span></code></pre>
 <h3 id="52-创建停止脚本-stop_allsh">5.2 创建停止脚本 <code>stop_all.sh</code></h3>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>#!/bin/bash</span></span>
 <span class="line"><span># /opt/ai-agent/stop_all.sh</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "================================================"</span></span>
-<span class="line"><span>echo "🛑 停止所有服务"</span></span>
-<span class="line"><span>echo "================================================"</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
+<span class="line"><span>echo &quot;🛑 停止所有服务&quot;</span></span>
+<span class="line"><span>echo &quot;================================================&quot;</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止语义缓存</span></span>
-<span class="line"><span>if [ -f "pids/semantic_cache.pid" ]; then</span></span>
+<span class="line"><span>if [ -f &quot;pids/semantic_cache.pid&quot; ]; then</span></span>
 <span class="line"><span>    PID=$(cat pids/semantic_cache.pid)</span></span>
-<span class="line"><span>    echo "停止语义缓存 (PID: $PID)..."</span></span>
-<span class="line"><span>    kill $PID 2>/dev/null</span></span>
+<span class="line"><span>    echo &quot;停止语义缓存 (PID: $PID)...&quot;</span></span>
+<span class="line"><span>    kill $PID 2&gt;/dev/null</span></span>
 <span class="line"><span>    sleep 2</span></span>
 <span class="line"><span>    rm -f pids/semantic_cache.pid</span></span>
 <span class="line"><span>fi</span></span>
@@ -1524,9 +1524,9 @@
 <span class="line"><span>./stop_agent.sh</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 停止监控</span></span>
-<span class="line"><span>pkill -f "cache_monitor.sh"</span></span>
+<span class="line"><span>pkill -f &quot;cache_monitor.sh&quot;</span></span>
 <span class="line"><span></span></span>
-<span class="line"><span>echo "✅ 所有服务已停止"</span></span>
+<span class="line"><span>echo &quot;✅ 所有服务已停止&quot;</span></span>
 <span class="line"><span></span></span></code></pre>
 <h2 id="-第六阶段优化">🚀 第六阶段：优化</h2>
 <h3 id="61-使用-systemd-服务保证开机启动">6.1 使用 systemd 服务保证开机启动</h3>
@@ -1535,13 +1535,13 @@
 <p>Redis 通常已配置好：</p>
 <p>bash</p>
 <p><strong>复制</strong>**下载**</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo systemctl enable redis-stack-server</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo systemctl enable redis-stack-server</span></span>
 <span class="line"><span>sudo systemctl start redis-stack-server</span></span>
 <span class="line"><span></span></span></code></pre>
 <h4 id="2-创建-llama-server-服务">2. 创建 llama-server 服务</h4>
 <p>bash</p>
 <p><strong>复制</strong>**下载**</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo tee /etc/systemd/system/llama-server.service &#x3C;&#x3C; 'EOF'</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo tee /etc/systemd/system/llama-server.service &lt;&lt; &#39;EOF&#39;</span></span>
 <span class="line"><span>[Unit]</span></span>
 <span class="line"><span>Description=llama-server AI Model Service</span></span>
 <span class="line"><span>After=network.target redis-stack-server.service</span></span>
@@ -1552,7 +1552,7 @@
 <span class="line"><span>User=openclaw</span></span>
 <span class="line"><span>Group=openclaw</span></span>
 <span class="line"><span>WorkingDirectory=/opt/ai-agent</span></span>
-<span class="line"><span>Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"</span></span>
+<span class="line"><span>Environment=&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span></span>
 <span class="line"><span>ExecStart=/opt/ai-agent/start_llama_single.sh</span></span>
 <span class="line"><span>ExecStop=/opt/ai-agent/stop_agent.sh</span></span>
 <span class="line"><span>Restart=on-failure</span></span>
@@ -1567,7 +1567,7 @@
 <h4 id="3-创建语义缓存服务">3. 创建语义缓存服务</h4>
 <p>bash</p>
 <p><strong>复制</strong>**下载**</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo tee /etc/systemd/system/semantic-cache.service &#x3C;&#x3C; 'EOF'</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span>sudo tee /etc/systemd/system/semantic-cache.service &lt;&lt; &#39;EOF&#39;</span></span>
 <span class="line"><span>[Unit]</span></span>
 <span class="line"><span>Description=Semantic Cache Service for OpenClaw</span></span>
 <span class="line"><span>After=network.target redis-stack-server.service llama-server.service</span></span>
@@ -1578,7 +1578,7 @@
 <span class="line"><span>User=openclaw</span></span>
 <span class="line"><span>Group=openclaw</span></span>
 <span class="line"><span>WorkingDirectory=/opt/ai-agent</span></span>
-<span class="line"><span>Environment="PATH=/opt/ai-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"</span></span>
+<span class="line"><span>Environment=&quot;PATH=/opt/ai-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span></span>
 <span class="line"><span>ExecStart=/opt/ai-agent/start_semantic_cache.sh</span></span>
 <span class="line"><span>ExecStop=/bin/kill -TERM $MAINPID</span></span>
 <span class="line"><span>Restart=on-failure</span></span>
@@ -1591,7 +1591,7 @@
 <h4 id="4-启用服务">4. 启用服务</h4>
 <p>bash</p>
 <p><strong>复制</strong>**下载**</p>
-<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span># 重新加载 systemd</span></span>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8;overflow-x:auto" tabindex="0" data-language="plaintext"><code><span class="line"><span># 重新加载 systemd</span></span>
 <span class="line"><span>sudo systemctl daemon-reload</span></span>
 <span class="line"><span></span></span>
 <span class="line"><span># 启用服务（开机自启）</span></span>

@@ -1,8 +1,7 @@
+local_backend: true
+
 backend:
-  name: github
-  repo: AlanStaline/staline.online
-  branch: main
-  auth_type: pkce
+  name: git-gateway  # 本地测试用，无需认证
 
 media_folder: "public/images"
 public_folder: "/images"
@@ -11,6 +10,8 @@ collections:
   - label: "Blog Posts"
     name: "blog"
     folder: "src/data/articles"
+    extension: mdx
+    format: frontmatter
     create: true
     slug: "{{slug}}"
     fields:
