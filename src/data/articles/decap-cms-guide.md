@@ -104,3 +104,1188 @@ sudo systemctl start redis-stack-server
 # 验证模块已加载
 redis-cli MODULE LIST
 ```
+
+**预期输出**：
+
+```
+1) 1) "name"
+   2) "ft"           # RediSearch
+   3) "ver"
+   4) (integer) 20804
+2) 1) "name"
+   2) "ReJSON"       # RedisJSON
+   3) "ver"
+   4) (integer) 20804
+```
+
+**如果输出为空，检查服务状态**：
+
+```
+# 查看服务状态
+sudo systemctl status redis-stack-server
+
+# 查看日志排查问题
+sudo journalctl -u redis-stack-server -n 50 --no-pager
+```
+
+**常见问题：端口 6379 被占用**
+
+```
+# 查看占用端口的进程
+sudo lsof -i :6379
+# 或
+sudo ss -tlnp | grep 6379
+
+# 停止原有 Redis 服务
+sudo systemctl stop redis-server
+sudo systemctl disable redis-server
+
+# 重启 redis-stack-server
+sudo systemctl restart redis-stack-server
+```
+
+
+
+### 1.2 安装 Python 依赖
+
+```
+安装 python3-venv 包
+
+sudo apt update
+sudo apt install -y python3.10-venv python3-pip 
+
+# 系统文件处理基础依赖
+sudo apt install -y ffmpeg tesseract-ocr tesseract-ocr-chi-sim pandoc
+
+
+# 然后创建venv
+cd /opt/ai-agent
+python3 -m venv venv
+source venv/bin/activate
+
+# 升级 pip
+pip install --upgrade pip
+
+# 文件处理基础依赖
+pip install tiktoken pillow pytesseract python-pptx python-docx pandas openpyxl
+
+# 安装语义缓存所需依赖
+pip install tiktoken
+pip install flask requests redis redisvl sentence-transformers
+pip install redisvl sentence-transformers
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# 验证安装
+python -c "from redisvl.extensions.llmcache import SemanticCache; print('✅ redisvl OK')"
+python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence-transformers OK')"
+```
+
+
+
+### 1.3 下载语义向量模型
+
+```
+cd /opt/ai-agent/models
+
+git clone https://www.modelscope.cn/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2.git
+
+# 进入目录确认
+cd paraphrase-multilingual-MiniLM-L12-v2
+
+# 验证模型
+ls -lha paraphrase-multilingual-MiniLM-L12-v2/
+```
+
+
+
+
+
+## 🚀 第二阶段：部署语义缓存服务
+
+
+
+### 2.1 创建语义缓存服务 `semantic_cache_service.py`
+
+````
+#!/usr/bin/env python3
+# /opt/ai-agent/semantic_cache_service.py
+
+import os
+import json
+import logging
+import re
+import threading
+import time
+import uuid
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import redis
+import requests
+from flask import Flask, request, jsonify, Response, stream_with_context
+
+# redisvl 导入
+from redisvl.extensions.cache.llm import SemanticCache
+from redisvl.utils.vectorize import HFTextVectorizer
+
+# ==================== 配置 ====================
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+LLAMA_SERVER_URL = 'http://localhost:7071/v1/chat/completions'
+CACHE_PORT = 9001
+LOG_DIR = '/opt/ai-agent/logs'
+
+# 向量模型配置
+MODEL_NAME = '/opt/ai-agent/models/paraphrase-multilingual-MiniLM-L12-v2'
+EMBEDDING_DIM = 384
+DISTANCE_THRESHOLD = 0.50
+
+# 缓存TTL配置（秒）
+CACHE_TTL = 86400
+
+# 时间敏感词库
+TIME_SENSITIVE_PATTERNS = [
+    r'今天|明天|昨天|后天|前天|今晚|明晚|昨晚',
+    r'现在|当前|此刻|目前',
+    r'今年|明年|去年|本月|下月|上月',
+    r'星期[一二三四五六日天]|周[一二三四五六日天]',
+]
+
+# ==================== 初始化 ====================
+app = Flask(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f'{LOG_DIR}/semantic_cache.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('semantic-cache')
+
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
+# 初始化向量器
+try:
+    vectorizer = HFTextVectorizer(model=MODEL_NAME)
+    logger.info(f"✅ 向量器加载成功: {MODEL_NAME}")
+except Exception as e:
+    logger.error(f"❌ 向量器加载失败: {e}")
+    try:
+        vectorizer = HFTextVectorizer(model='sentence-transformers/all-MiniLM-L6-v2', dim=384)
+        logger.info("✅ 使用备用向量器: all-MiniLM-L6-v2")
+    except Exception as e2:
+        logger.error(f"❌ 备用向量器也加载失败: {e2}")
+        vectorizer = None
+
+if vectorizer is not None:
+    try:
+        llmcache = SemanticCache(
+            name="llm_cache",
+            redis_url=f"redis://{REDIS_HOST}:{REDIS_PORT}",
+            distance_threshold=DISTANCE_THRESHOLD,
+            ttl=CACHE_TTL,
+            vectorizer=vectorizer
+        )
+        logger.info("✅ 语义缓存初始化成功")
+    except Exception as e:
+        logger.error(f"❌ 语义缓存初始化失败: {e}")
+        llmcache = None
+else:
+    llmcache = None
+    logger.warning("⚠️ 向量器不可用，语义缓存已禁用")
+
+# ==================== 工具函数 ====================
+
+def extract_user_message(messages: List[Dict]) -> str:
+    """提取真实的用户消息"""
+    for msg in reversed(messages):
+        if msg.get('role') != 'user':
+            continue
+            
+        content = msg.get('content', '')
+        
+        if isinstance(content, list):
+            for item in content:
+                if item.get('type') == 'text':
+                    text = item.get('text', '')
+                    cleaned = clean_user_message(text)
+                    if cleaned:
+                        return cleaned
+            return ''
+        
+        if isinstance(content, str):
+            cleaned = clean_user_message(content)
+            if cleaned:
+                return cleaned
+    
+    return ''
+
+def clean_user_message(text: str) -> str:
+    """清理用户消息中的 OpenClaw 元数据"""
+    if not text:
+        return ""
+    
+    import re
+    
+    # 移除时间戳格式 [Tue 2026-03-24 17:13 GMT+8]
+    cleaned = re.sub(r'\[[A-Za-z]{3}\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+GMT\+\d\]\s*', '', text)
+    cleaned = re.sub(r'\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}\s+GMT\+\d\]\s*', '', cleaned)
+    
+    # 移除 Sender 元数据
+    cleaned = re.sub(r'Sender \(untrusted metadata\):.*?\n', '', cleaned)
+    cleaned = re.sub(r'```json\n.*?\n```\n', '', cleaned, flags=re.DOTALL)
+    
+    # 移除 openclaw-control-ui 标签
+    cleaned = re.sub(r'openclaw-control-ui', '', cleaned)
+    
+    cleaned = cleaned.strip()
+    
+    # 如果清理后为空，尝试提取最后一行
+    if not cleaned and text:
+        lines = text.split('\n')
+        for line in reversed(lines):
+            line = line.strip()
+            if line and not line.startswith('{') and '```' not in line:
+                return line
+        return ""
+    
+    return cleaned
+
+def is_time_sensitive(query: str) -> Tuple[bool, str]:
+    """检测查询是否时间敏感"""
+    if not query or len(query) < 2:
+        return False, "查询太短"
+    
+    for pattern in TIME_SENSITIVE_PATTERNS:
+        if re.search(pattern, query):
+            return True, f"包含时间词: {pattern}"
+    
+    return False, "非时间敏感"
+
+
+def clean_response_for_openclaw(response_dict: Dict) -> Dict:
+    """清理响应，移除 OpenClaw 不期望的字段"""
+    if not isinstance(response_dict, dict):
+        return response_dict
+    
+    if 'choices' in response_dict:
+        for choice in response_dict['choices']:
+            if 'message' in choice and 'reasoning_content' in choice['message']:
+                del choice['message']['reasoning_content']
+    
+    if 'id' not in response_dict:
+        response_dict['id'] = f"chatcmpl-cache-{int(time.time())}"
+    if 'created' not in response_dict:
+        response_dict['created'] = int(time.time())
+    if 'object' not in response_dict:
+        response_dict['object'] = 'chat.completion'
+    
+    return response_dict
+
+
+def stream_cached_response(content: str):
+    """生成流式响应"""
+    stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+    created = int(time.time())
+    
+    first_chunk = {
+        "id": stream_id,
+        "object": "chat.completion.chunk",
+        "created": created,
+        "model": "semantic-cache",
+        "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]
+    }
+    yield f"data: {json.dumps(first_chunk)}\n\n"
+    
+    chunk_size = 10
+    for i in range(0, len(content), chunk_size):
+        chunk_content = content[i:i+chunk_size]
+        chunk = {
+            "id": stream_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": "semantic-cache",
+            "choices": [{"index": 0, "delta": {"content": chunk_content}, "finish_reason": None}]
+        }
+        yield f"data: {json.dumps(chunk)}\n\n"
+        time.sleep(0.005)
+    
+    final_chunk = {
+        "id": stream_id,
+        "object": "chat.completion.chunk",
+        "created": created,
+        "model": "semantic-cache",
+        "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]
+    }
+    yield f"data: {json.dumps(final_chunk)}\n\n"
+    yield "data: [DONE]\n\n"
+
+
+def log_cache_operation(operation: str, query: str, hit: bool, details: Dict = None):
+    """记录缓存操作日志"""
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'operation': operation,
+        'query_preview': query[:50],
+        'hit': hit,
+        'details': details or {}
+    }
+    logger.info(f"CACHE: {json.dumps(log_entry, ensure_ascii=False)}")
+    
+    redis_client.incr(f"stats:cache:{operation}:total")
+    if hit:
+        redis_client.incr("stats:cache:hits")
+    else:
+        redis_client.incr("stats:cache:misses")
+
+
+# ==================== 核心缓存逻辑 ====================
+
+def semantic_cache_lookup(query: str) -> Optional[Dict]:
+    """语义缓存查找"""
+    if llmcache is None:
+        return None
+    
+    is_sensitive, reason = is_time_sensitive(query)
+    if is_sensitive:
+        logger.info(f"⏰ 时间敏感查询，跳过缓存: {reason}")
+        log_cache_operation('skip_time_sensitive', query, False, {'reason': reason})
+        return None
+    
+    try:
+        results = llmcache.check(prompt=query)
+        
+        if results and len(results) > 0:
+            if isinstance(results, list):
+                for r in results:
+                    if isinstance(r, dict):
+                        distance = r.get('distance', r.get('score', 'unknown'))
+                        logger.info(f"缓存匹配 - 距离分数: {distance}")
+                    break
+        
+        if results and len(results) > 0:
+            result = results[0] if isinstance(results, list) else results
+            logger.info(f"✅ 语义缓存命中")
+            log_cache_operation('hit', query, True, {})
+            
+            response_str = result.get('response') if isinstance(result, dict) else result
+            
+            if isinstance(response_str, str):
+                try:
+                    response_dict = json.loads(response_str)
+                    return {'response': response_dict}
+                except:
+                    return {'response': {'content': response_str}}
+            elif isinstance(response_str, dict):
+                return {'response': response_str}
+            else:
+                return {'response': {'content': str(response_str)}}
+    except Exception as e:
+        logger.error(f"缓存查询失败: {e}")
+    
+    return None
+
+
+def semantic_cache_store(query: str, response: Dict, messages: List[Dict]):
+    """存储到语义缓存"""
+    if llmcache is None:
+        return
+    
+    is_sensitive, _ = is_time_sensitive(query)
+    if is_sensitive:
+        return
+    
+    try:
+        response_str = json.dumps(response, ensure_ascii=False)
+        llmcache.store(
+            prompt=query,
+            response=response_str,
+            metadata={
+                'cached_at': datetime.now().isoformat(),
+                'original_query': query[:200],
+                'message_count': len(messages)
+            }
+        )
+        logger.info(f"💾 已缓存: {query[:50]}...")
+        redis_client.incr("stats:cache:stores")
+    except Exception as e:
+        logger.error(f"缓存存储失败: {e}", exc_info=True)
+
+
+# ==================== 转发函数 - 使用 completion 端点 ====================
+
+def extract_answer_from_thinking(thinking_buffer: str) -> str:
+    """从思考内容中提取答案 - 针对 Qwen 思考格式优化"""
+    if not thinking_buffer:
+        return ""
+    
+    # 思考关键词（用于过滤）
+    thinking_keywords = [
+        'Thinking Process:', '思考过程：',
+        'Analyze the Request:', '分析请求：',
+        'Review System Rules:', '检查系统规则：',
+        'Determine Response:', '确定响应：',
+        'Context:', '上下文：',
+        'System Instructions:', '系统指令：',
+        'Current User Query:', '当前用户查询：',
+        'Wait,', 'Let me', 'Actually,', 'Looking at',
+        'Raw Input', 'Let\'s re-read', 'Trace carefully',
+        'Step', '步骤', '1.', '2.', '3.', '4.', '5.'
+    ]
+    
+    lines = thinking_buffer.split('\n')
+    useful_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # 跳过思考标记行
+        skip = False
+        for kw in thinking_keywords:
+            if kw in line:
+                skip = True
+                break
+        if skip:
+            continue
+        
+        # 跳过编号列表
+        if re.match(r'^\d+\.', line):
+            continue
+        
+        # 跳过以 - 或 * 开头的列表
+        if line.startswith('-') or line.startswith('*'):
+            continue
+        
+        # 跳过以 ** 开头的粗体标记
+        if line.startswith('**'):
+            continue
+        
+        useful_lines.append(line)
+    
+    if useful_lines:
+        # 取最后几条作为答案（答案通常在最后）
+        answer = '\n'.join(useful_lines[-5:])
+        if len(answer) > 20:
+            logger.info(f"从思考中提取答案，长度 {len(answer)} 字符")
+            return answer
+    
+    # 兜底：返回前500字符
+    return thinking_buffer[:500]
+
+def forward_to_llama(data):
+    """转发请求到llama-server - 完全替换系统消息（非流式）"""
+    try:
+        messages = data.get('messages', [])
+        
+        # 提取用户消息和助手消息，完全忽略系统消息
+        conversation = []
+        
+        for msg in messages:
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            
+            if role == 'user':
+                # 清理用户消息
+                if isinstance(content, str):
+                    cleaned = clean_user_message(content)
+                    if cleaned:
+                        conversation.append({"role": "user", "content": cleaned})
+                elif isinstance(content, list):
+                    for item in content:
+                        if item.get('type') == 'text':
+                            cleaned = clean_user_message(item.get('text', ''))
+                            if cleaned:
+                                conversation.append({"role": "user", "content": cleaned})
+                                break
+            elif role == 'assistant':
+                # 保留助手消息
+                if isinstance(content, str):
+                    conversation.append({"role": "assistant", "content": content})
+                elif isinstance(content, list):
+                    for item in content:
+                        if item.get('type') == 'text':
+                            conversation.append({"role": "assistant", "content": item.get('text', '')})
+                            break
+        
+        # 保留最近 6 条对话
+        if len(conversation) > 6:
+            conversation = conversation[-6:]
+            logger.info(f"📋 保留最近 {len(conversation)} 条对话")
+        
+        # 使用自定义精简系统消息
+        custom_system = """你是AI助手，运行在 OpenClaw 环境中。
+
+## 可用工具
+- read: 读取文件内容
+- write: 写入文件
+- edit: 编辑文件
+- ls: 列出目录
+- run: 执行命令
+- web_search: 网络搜索
+
+## 核心规则
+1. 输出纯文本，不要使用任何特殊格式标签
+2. 不要输出 <BotName>、<ModelAnswer> 等标签
+3. 直接回答用户问题，不要重复
+4. 回答简洁，每个问题只回答一次
+5. 需要读取文件时，说明文件路径
+6. 需要执行命令时，说明命令内容
+
+## 注意
+- 你无法直接访问用户的文件系统
+- 用户可以通过工具帮你读取文件
+- 如果需要读取文件，请告诉用户"""
+        
+        # 构建 prompt
+        prompt_parts = [f"System: {custom_system}"]
+        for msg in conversation:
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            if role == 'user':
+                prompt_parts.append(f"User: {content}")
+            elif role == 'assistant':
+                prompt_parts.append(f"Assistant: {content}")
+        
+        raw_prompt = "\n".join(prompt_parts) + "\nAssistant: "
+        
+        logger.info(f"📝 自定义 prompt 长度: {len(raw_prompt)} 字符")
+        
+        # 构建 completion 请求
+        completion_data = {
+            "prompt": raw_prompt,
+            "n_predict": data.get('max_tokens', 16384),
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "repeat_penalty": 1.15,
+            "presence_penalty": 0.5,
+            "frequency_penalty": 0.5,
+            "stream": False,
+            "thinking": False,
+            "reasoning": False,
+            "reasoning_effort": 0
+        }
+        
+        # 发送请求
+        response = requests.post("http://localhost:7071/completion", json=completion_data, timeout=120)
+        logger.info(f"后端响应状态: {response.status_code}")
+        
+        result = response.json()
+        content = result.get('content', '')
+        
+        # ===== 后处理过滤 =====
+        import re
+        
+        # 检测并过滤思考模式
+        thinking_keywords = ['Thinking Process:', '思考过程：', 'Analyze the Request:', 'Review System Rules:', 'Determine Response:', 'Context:', 'System Instructions:', 'Current User Query:']
+        
+        # 如果内容包含思考模式，尝试提取答案
+        if any(kw in content for kw in thinking_keywords):
+            logger.info("检测到思考模式，尝试提取答案")
+            
+            # 尝试按答案标记提取
+            answer_markers = ['Assistant:', '答案：', '回答：', 'Draft:', 'Therefore:', '所以：', '综上：']
+            extracted = False
+            
+            for marker in answer_markers:
+                if marker in content:
+                    parts = content.split(marker, 1)
+                    if len(parts) > 1:
+                        content = parts[1].strip()
+                        extracted = True
+                        logger.info(f"通过 '{marker}' 提取答案")
+                        break
+            
+            if not extracted:
+                # 使用提取函数
+                content = extract_answer_from_thinking(content)
+        
+        # 移除所有 HTML/XML 标签
+        content = re.sub(r'<[^>]+>', '', content)
+        # 移除多余的换行
+        content = re.sub(r'\n{3,}', '\n\n', content)
+        # 移除思考标记残留
+        for kw in thinking_keywords:
+            content = re.sub(kw, '', content, flags=re.IGNORECASE)
+        # 移除 Markdown 标题符号
+        content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)
+        # 移除列表符号
+        content = re.sub(r'^\s*[-*+]\s+', '', content, flags=re.MULTILINE)
+        content = re.sub(r'^\s*\d+\.\s+', '', content, flags=re.MULTILINE)
+        # 去除首尾空白
+        content = content.strip()
+        
+        # 如果内容过长，截断
+        if len(content) > 16384:
+            content = content[:16384] + "..."
+            logger.info(f"✂️ 内容过长，已截断")
+        
+        # 如果内容为空，返回兜底消息
+        if not content:
+            content = "抱歉，生成内容为空。"
+            logger.warning("内容为空，使用兜底消息")
+        
+        # 转换为 OpenAI chat 格式
+        return jsonify({
+            "choices": [{
+                "message": {"role": "assistant", "content": content},
+                "finish_reason": "stop",
+                "index": 0
+            }],
+            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+            "created": int(time.time()),
+            "model": "qwen",
+            "object": "chat.completion"
+        })
+        
+    except requests.exceptions.Timeout:
+        logger.error("llama-server超时")
+        return jsonify({'error': 'llama-server timeout'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error("llama-server连接失败")
+        return jsonify({'error': 'llama-server unavailable'}), 503
+    except Exception as e:
+        logger.error(f"转发失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def forward_to_llama_stream(data):
+    """转发流式请求到llama-server - 完全替换系统消息（流式）"""
+    try:
+        messages = data.get('messages', [])
+        
+        # 提取用户消息和助手消息，完全忽略系统消息
+        conversation = []
+        
+        for msg in messages:
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            
+            if role == 'user':
+                # 清理用户消息
+                if isinstance(content, str):
+                    cleaned = clean_user_message(content)
+                    if cleaned:
+                        conversation.append({"role": "user", "content": cleaned})
+                elif isinstance(content, list):
+                    for item in content:
+                        if item.get('type') == 'text':
+                            cleaned = clean_user_message(item.get('text', ''))
+                            if cleaned:
+                                conversation.append({"role": "user", "content": cleaned})
+                                break
+            elif role == 'assistant':
+                # 保留助手消息
+                if isinstance(content, str):
+                    conversation.append({"role": "assistant", "content": content})
+                elif isinstance(content, list):
+                    for item in content:
+                        if item.get('type') == 'text':
+                            conversation.append({"role": "assistant", "content": item.get('text', '')})
+                            break
+        
+        # 保留最近 6 条对话（用于上下文）
+        if len(conversation) > 6:
+            conversation = conversation[-6:]
+            logger.info(f"📋 保留最近 {len(conversation)} 条对话")
+        
+        # 使用自定义精简系统消息
+        custom_system = """你是AI助手，运行在 OpenClaw 环境中。
+
+## 可用工具
+- read: 读取文件内容
+- write: 写入文件
+- edit: 编辑文件
+- ls: 列出目录
+- run: 执行命令
+- web_search: 网络搜索
+
+## 核心规则
+1. 输出纯文本，不要使用任何特殊格式标签
+2. 不要输出 <BotName>、<ModelAnswer> 等标签
+3. 直接回答用户问题，不要重复
+4. 回答简洁，每个问题只回答一次
+5. 需要读取文件时，说明文件路径
+6. 需要执行命令时，说明命令内容
+
+## 注意
+- 你无法直接访问用户的文件系统
+- 用户可以通过工具帮你读取文件
+- 如果需要读取文件，请告诉用户"""
+        
+        # 构建 prompt
+        prompt_parts = [f"System: {custom_system}"]
+        for msg in conversation:
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            if role == 'user':
+                prompt_parts.append(f"User: {content}")
+            elif role == 'assistant':
+                prompt_parts.append(f"Assistant: {content}")
+        
+        raw_prompt = "\n".join(prompt_parts) + "\nAssistant: "
+        
+        logger.info(f"📝 自定义 prompt 长度: {len(raw_prompt)} 字符")
+        
+        # 构建 completion 请求
+        completion_data = {
+            "prompt": raw_prompt,
+            "n_predict": data.get('max_tokens', 16384),
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "repeat_penalty": 1.15,
+            "presence_penalty": 0.5,
+            "frequency_penalty": 0.5,
+            "stream": True,
+            "thinking": False,
+            "reasoning": False,
+            "reasoning_effort": 0
+        }
+        
+        # 发送请求到 completion 端点
+        response = requests.post(
+            "http://localhost:7071/completion",
+            json=completion_data,
+            stream=True,
+            timeout=120
+        )
+        logger.info(f"后端流式响应状态: {response.status_code}")
+        
+        def generate():
+            import re
+            import time
+            stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+            created = int(time.time())
+            first_chunk_sent = False
+            accumulated_content = ""
+            repeat_count = 0
+            thinking_mode = False
+            thinking_start_time = None
+            thinking_buffer = ""
+            MAX_THINKING_TIME = 15  # 15秒思考时间，避免用户等待太久
+            MAX_TOTAL_TIME = 120   # 总生成时间120秒
+            
+            start_time = time.time()
+            
+            for line in response.iter_lines():
+                # 检查总时间是否超时
+                if time.time() - start_time > MAX_TOTAL_TIME:
+                    logger.warning(f"总生成时间超时 ({MAX_TOTAL_TIME}秒)，停止生成")
+                    break
+                
+                if line:
+                    try:
+                        line_str = line.decode('utf-8')
+                        if not line_str.strip():
+                            continue
+                        
+                        if line_str.startswith('data: '):
+                            json_str = line_str[6:]
+                            if json_str.strip() == '[DONE]':
+                                break
+                            
+                            completion_chunk = json.loads(json_str)
+                            content = completion_chunk.get('content', '')
+                            
+                            if content:
+                                # ===== 检测思考模式开始 =====
+                                thinking_keywords = ['Thinking Process:', '思考过程：', 'Analyze the Request:', 'Review System Rules:', 'Determine Response:', 'Context:', 'System Instructions:']
+                                is_thinking = any(kw in content for kw in thinking_keywords)
+                                
+                                if is_thinking and not thinking_mode:
+                                    thinking_mode = True
+                                    thinking_start_time = time.time()
+                                    thinking_buffer = ""
+                                    logger.info("检测到思考模式，等待思考完成...")
+                                    continue
+                                
+                                # ===== 如果在思考模式中 =====
+                                if thinking_mode:
+                                    thinking_buffer += content
+                                    
+                                    # 检测是否出现答案标志
+                                    answer_markers = ['Assistant:', '答案：', '回答：', 'Draft:', 'Therefore:', '所以：', '综上：']
+                                    has_answer = any(kw in content for kw in answer_markers)
+                                    
+                                    if has_answer:
+                                        # 立即提取答案
+                                        answer = extract_answer_from_thinking(thinking_buffer + content)
+                                        if answer:
+                                            content = answer
+                                            thinking_mode = False
+                                            logger.info(f"从思考中提取答案，长度 {len(answer)}")
+                                    elif time.time() - thinking_start_time > MAX_THINKING_TIME:
+                                        # 超时，尝试提取答案
+                                        answer = extract_answer_from_thinking(thinking_buffer)
+                                        if answer:
+                                            content = answer
+                                            logger.warning(f"思考超时 ({MAX_THINKING_TIME}秒)，提取答案 {len(answer)}")
+                                        else:
+                                            content = "抱歉，生成超时。"
+                                        thinking_mode = False
+                                    else:
+                                        # 还在思考中，继续等待
+                                        continue
+                                
+                                # ===== 过滤特殊标签 =====
+                                # 移除所有 HTML/XML 标签
+                                content = re.sub(r'<[^>]+>', '', content)
+                                # 移除多余的换行
+                                content = re.sub(r'\n{3,}', '\n\n', content)
+                                # 移除思考标记残留
+                                for kw in thinking_keywords:
+                                    content = re.sub(kw, '', content, flags=re.IGNORECASE)
+                                # 移除 Markdown 标题符号
+                                content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)
+                                # 移除列表符号
+                                content = re.sub(r'^\s*[-*+]\s+', '', content, flags=re.MULTILINE)
+                                content = re.sub(r'^\s*\d+\.\s+', '', content, flags=re.MULTILINE)
+                                # 清理多余空格
+                                content = re.sub(r'\n\s*\n', '\n\n', content)
+                                content = content.strip()
+                                
+                                if content:
+                                    # ===== 重复检测 =====
+                                    if len(content) > 20 and content in accumulated_content:
+                                        repeat_count += 1
+                                        if repeat_count > 2:
+                                            logger.warning("检测到重复内容，停止生成")
+                                            break
+                                    else:
+                                        repeat_count = 0
+                                    
+                                    accumulated_content += content
+                                    
+                                    # ===== 长度限制 =====
+                                    if len(accumulated_content) > 16384:
+                                        logger.warning("内容过长，停止生成")
+                                        break
+                                    
+                                    if not first_chunk_sent:
+                                        first_chunk = {
+                                            "id": stream_id,
+                                            "object": "chat.completion.chunk",
+                                            "created": created,
+                                            "model": "qwen",
+                                            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]
+                                        }
+                                        yield f"data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n"
+                                        first_chunk_sent = True
+                                    
+                                    chunk = {
+                                        "id": stream_id,
+                                        "object": "chat.completion.chunk",
+                                        "created": created,
+                                        "model": "qwen",
+                                        "choices": [{"index": 0, "delta": {"content": content}, "finish_reason": None}]
+                                    }
+                                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                                
+                                if completion_chunk.get('stop', False):
+                                    break
+                                
+                    except json.JSONDecodeError as e:
+                        logger.error(f"JSON 解析失败: {e}")
+                    except Exception as e:
+                        logger.error(f"处理响应失败: {e}")
+            
+            # ===== 循环结束，如果还在思考模式，尝试提取答案 =====
+            if thinking_mode and thinking_buffer:
+                answer = extract_answer_from_thinking(thinking_buffer)
+                if answer:
+                    logger.warning(f"思考未完成，提取缓冲答案 ({len(answer)} 字符)")
+                    if not first_chunk_sent:
+                        first_chunk = {
+                            "id": stream_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": "qwen",
+                            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]
+                        }
+                        yield f"data: {json.dumps(first_chunk, ensure_ascii=False)}\n\n"
+                    
+                    chunk = {
+                        "id": stream_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": "qwen",
+                        "choices": [{"index": 0, "delta": {"content": answer}, "finish_reason": None}]
+                    }
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+            
+            # 发送结束标记
+            final_chunk = {
+                "id": stream_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": "qwen",
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]
+            }
+            yield f"data: {json.dumps(final_chunk, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Content-Type': 'text/event-stream'
+            }
+        )
+                
+    except requests.exceptions.Timeout:
+        logger.error("llama-server超时")
+        return jsonify({'error': 'llama-server timeout'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error("llama-server连接失败")
+        return jsonify({'error': 'llama-server unavailable'}), 503
+    except Exception as e:
+        logger.error(f"转发流式请求失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==================== API端点 ====================
+
+# 访问Key验证
+API_KEY = os.environ.get('SEMANTIC_CACHE_API_KEY', 'ak_29e0LL4449GO4ao0Oz8kl7zd8Bm2o')
+
+@app.route('/v1/chat/completions', methods=['POST'])
+def chat_completions():
+    """主入口：OpenClaw请求从这里进入"""
+	
+    # ===== API Key 验证 =====
+    api_key = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if api_key != API_KEY:
+        logger.warning(f"未授权的访问尝试: {request.remote_addr}")
+        return jsonify({'error': 'Unauthorized'}), 401
+		
+    start_time = time.time()
+
+    try:
+        data = request.json
+        messages = data.get('messages', [])
+        is_stream = data.get('stream', False)
+		
+        # ===== 打印完整的请求信息 =====
+        logger.info("=" * 80)
+        logger.info("📨 收到 OpenClaw 请求:")
+        logger.info(f"   流式模式: {is_stream}")
+        logger.info(f"   消息数量: {len(messages)}")
+        logger.info("-" * 40)
+        
+        # 打印每条消息的详细信息
+        for i, msg in enumerate(messages):
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            logger.info(f"   [{i}] role: {role}")
+            
+            if isinstance(content, str):
+                # 打印内容长度和预览
+                logger.info(f"       length: {len(content)} 字符")
+                logger.info(f"       preview: {content[:200]}...")
+            elif isinstance(content, list):
+                logger.info(f"       type: list, length: {len(content)}")
+                for item in content:
+                    logger.info(f"       item: {item}")
+            else:
+                logger.info(f"       content: {content}")
+        
+        # 打印系统消息汇总
+        system_messages = [m for m in messages if m.get('role') == 'system']
+        if system_messages:
+            logger.info("-" * 40)
+            logger.info(f"📌 系统消息汇总 ({len(system_messages)} 条):")
+            total_system_chars = sum(len(m.get('content', '')) for m in system_messages if isinstance(m.get('content'), str))
+            logger.info(f"   总字符数: {total_system_chars}")
+            for msg in system_messages:
+                content = msg.get('content', '')
+                logger.info(f"   - {content[:100]}...")
+        
+        logger.info("=" * 80)
+        # ===== 打印结束 =====
+        
+        user_query = extract_user_message(messages)
+        
+        logger.info(f"📝 用户查询: {user_query[:100] if user_query else 'None'}...")
+        logger.info(f"流式模式: {is_stream}")
+        
+        if not user_query:
+            logger.info("没有有效的用户消息，直接转发")
+            if is_stream:
+                return forward_to_llama_stream(data)
+            return forward_to_llama(data)
+
+        cached = semantic_cache_lookup(user_query)
+
+        if cached:
+            response_time = time.time() - start_time
+            logger.info(f"⚡ 缓存返回，耗时: {response_time:.3f}秒")
+            result = cached['response']
+            
+            content = None
+            if isinstance(result, dict):
+                if 'choices' in result and result['choices']:
+                    content = result['choices'][0].get('message', {}).get('content', '')
+                elif 'content' in result:
+                    content = result['content']
+                else:
+                    content = str(result)
+            else:
+                content = str(result)
+            
+            if is_stream:
+                logger.info(f"返回流式缓存响应，内容长度: {len(content)}")
+                return Response(
+                    stream_with_context(stream_cached_response(content)),
+                    mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+                )
+            else:
+                if isinstance(result, dict):
+                    result = clean_response_for_openclaw(result)
+                    result['_cached'] = True
+                else:
+                    result = {
+                        'choices': [{'message': {'role': 'assistant', 'content': str(result)}, 'finish_reason': 'stop', 'index': 0}],
+                        '_cached': True,
+                        'id': f"chatcmpl-cache-{int(time.time())}",
+                        'created': int(time.time()),
+                        'object': 'chat.completion'
+                    }
+                return jsonify(result)
+
+        logger.info("🔄 缓存未命中，调用模型...")
+        
+        if is_stream:
+            return forward_to_llama_stream(data)
+        else:
+            llama_response = forward_to_llama(data)
+            
+            if hasattr(llama_response, 'status_code') and llama_response.status_code == 200:
+                try:
+                    response_data = json.loads(llama_response.get_data(as_text=True))
+                    threading.Thread(
+                        target=semantic_cache_store,
+                        args=(user_query, response_data, messages)
+                    ).start()
+                except Exception as e:
+                    logger.error(f"缓存存储失败: {e}")
+
+            response_time = time.time() - start_time
+            logger.info(f"🔄 模型返回，总耗时: {response_time:.3f}秒")
+            return llama_response
+
+    except Exception as e:
+        logger.error(f"处理失败: {e}", exc_info=True)
+        if data and data.get('stream', False):
+            return forward_to_llama_stream(request.json)
+        return forward_to_llama(request.json)
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    """健康检查"""
+    try:
+        redis_client.ping()
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'cache_enabled': llmcache is not None
+        })
+    except Exception as e:
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 503
+
+
+@app.route('/stats', methods=['GET'])
+def stats():
+    """缓存统计"""
+    stats = {
+        'hits': int(redis_client.get('stats:cache:hits') or 0),
+        'misses': int(redis_client.get('stats:cache:misses') or 0),
+        'stores': int(redis_client.get('stats:cache:stores') or 0),
+        'skipped_time_sensitive': int(redis_client.get('stats:cache:skip_time_sensitive:total') or 0)
+    }
+
+    total = stats['hits'] + stats['misses']
+    stats['hit_rate'] = round(stats['hits'] * 100 / total, 2) if total > 0 else 0
+    return jsonify(stats)
+
+
+@app.route('/cache/clear', methods=['POST'])
+def clear_cache():
+    """清理缓存（管理员用）"""
+    try:
+        if llmcache:
+            llmcache.clear()
+        redis_client.delete('stats:cache:hits', 'stats:cache:misses', 'stats:cache:stores')
+        return jsonify({'status': 'cleared'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== 后台任务 ====================
+
+def cleanup_old_entries():
+    """后台清理过期缓存条目"""
+    while True:
+        try:
+            time.sleep(3600)
+            logger.info("🧹 开始清理过期缓存...")
+            logger.info("✅ 清理完成")
+        except Exception as e:
+            logger.error(f"清理失败: {e}")
+
+cleanup_thread = threading.Thread(target=cleanup_old_entries, daemon=True)
+cleanup_thread.start()
+
+
+# ==================== 启动服务 ====================
+if __name__ == '__main__':
+    logger.info("🚀 启动语义缓存服务...")
+    logger.info(f"   端口: {CACHE_PORT}")
+    logger.info(f"   Redis: {REDIS_HOST}:{REDIS_PORT}")
+    logger.info(f"   LLAMA: {LLAMA_SERVER_URL}")
+    logger.info("=================================")
+    app.run(host='0.0.0.0', port=CACHE_PORT, debug=False, threaded=True)
+````
+
+
+
+### 2.2 创建启动脚本 `start_semantic_cache.sh`
+
+
+
+```
+#!/bin/bash
+# /opt/ai-agent/start_semantic_cache.sh
+
+cd /opt/ai-agent
+source venv/bin/activate
+
+LOG_DIR="/opt/ai-agent/logs"
+PID_DIR="/opt/ai-agent/pids"
+mkdir -p "$LOG_DIR" "$PID_DIR"
+
+# 停止旧实例
+if [ -f "${PID_DIR}/semantic_cache.pid" ]; then
+    OLD_PID=$(cat "${PID_DIR}/semantic_cache.pid")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "🛑 停止旧语义缓存服务 (PID: $OLD_PID)..."
+        kill "$OLD_PID"
+        sleep 3
+    fi
+fi
+
+echo "🚀 启动语义缓存服务..."
+nohup python3 semantic_cache_service.py \
+    > "${LOG_DIR}/semantic_cache.log" 2>&1 &
+
+PID=$!
+echo $PID > "${PID_DIR}/semantic_cache.pid"
+
+echo "✅ 语义缓存服务已启动 (PID: $PID)"
+echo "   端口: 9001"
+echo "   日志: tail -f ${LOG_DIR}/semantic_cache.log"
+```
