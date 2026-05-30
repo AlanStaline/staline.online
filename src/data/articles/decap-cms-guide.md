@@ -1517,3 +1517,174 @@ while true; do
     sleep 10
 done
 ```
+
+
+
+
+
+## 🚀 第五阶段：一键启动全流程
+
+
+
+
+
+### 5.1 更新主启动脚本 `start_all.sh`
+
+
+
+```
+#!/bin/bash
+# /opt/ai-agent/start_all.sh
+
+cd /opt/ai-agent
+source venv/bin/activate
+
+echo "================================================"
+echo "🚀 启动 AI Agent 服务 (单实例+语义缓存)"
+echo "================================================"
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
+
+# 1. 检查 Redis 服务
+echo "[1/4] 检查 Redis 服务..."
+if redis-cli ping > /dev/null 2>&1; then
+    echo "  ✅ Redis 运行中"
+    
+    if redis-cli MODULE LIST | grep -q -E "(ft|search)"; then
+        echo "  ✅ RediSearch 模块已加载"
+    else
+        echo "  ⚠️ RediSearch 模块未加载，请检查 redis-stack-server 安装"
+    fi
+else
+    echo "  ❌ Redis 未运行，请先启动: sudo systemctl start redis-stack-server"
+    exit 1
+fi
+
+# 2. 检查 llama-server
+echo ""
+echo "[2/4] 检查 llama-server..."
+if curl -s http://localhost:7071/health > /dev/null; then
+    echo "  ✅ llama-server 运行中"
+else
+    echo "  🚀 启动 llama-server..."
+    ./start_llama_single.sh
+fi
+
+# 3. 启动语义缓存服务
+echo ""
+echo "[3/4] 启动语义缓存服务..."
+./start_semantic_cache.sh
+
+# 4. 等待服务启动
+echo ""
+echo "⏳ 等待服务启动..."
+sleep 5
+
+# 5. 验证服务
+echo ""
+echo "[4/4] 验证服务状态..."
+
+# 等待服务启动（最多等待10秒）
+MAX_RETRIES=10
+RETRY=0
+while [ $RETRY -lt $MAX_RETRIES ]; do
+    if curl -s http://localhost:9001/health > /dev/null 2>&1; then
+        echo "  ✅ 语义缓存服务: 运行中"
+        break
+    fi
+    RETRY=$((RETRY + 1))
+    if [ $RETRY -eq $MAX_RETRIES ]; then
+        echo "  ❌ 语义缓存服务启动失败（超时）"
+        echo "  查看日志: tail -20 logs/semantic_cache.log"
+    else
+        echo "  ⏳ 等待服务启动... ($RETRY/$MAX_RETRIES)"
+        sleep 1
+    fi
+done
+
+echo ""
+echo "================================================"
+echo "✅ 所有服务已启动"
+echo "================================================"
+echo ""
+echo "📊 服务端口:"
+echo "   - 语义缓存: http://localhost:9001"
+echo "   - llama-server: http://localhost:7071"
+echo "   - Redis: localhost:6379"
+echo ""
+echo "📝 日志文件:"
+echo "   - tail -f logs/semantic_cache.log"
+echo ""
+echo "📈 监控命令:"
+echo "   - 缓存统计: curl http://localhost:9001/stats | jq ."
+echo "   - 实时监控: ./cache_monitor.sh"
+echo ""
+echo "🛑 停止服务: ./stop_all.sh"
+echo "================================================"
+
+```
+
+
+
+
+
+### 5.2 创建停止脚本 `stop_all.sh`
+
+```
+#!/bin/bash
+# /opt/ai-agent/stop_all.sh
+
+echo "================================================"
+echo "🛑 停止所有服务"
+echo "================================================"
+
+# 停止语义缓存
+if [ -f "pids/semantic_cache.pid" ]; then
+    PID=$(cat pids/semantic_cache.pid)
+    echo "停止语义缓存 (PID: $PID)..."
+    kill $PID 2>/dev/null
+    sleep 2
+    rm -f pids/semantic_cache.pid
+fi
+
+# 停止 llama-server
+./stop_agent.sh
+
+# 停止监控
+pkill -f "cache_monitor.sh"
+
+echo "✅ 所有服务已停止"
+```
+
+
+
+## 🚀 第六阶段：优化
+
+
+
+
+
+### 6.1 使用 systemd 服务保证开机启动
+
+
+
+为每个服务创建独立的 systemd 单元文件。
+
+
+
+#### 1. 创建 Redis 服务（如果还没配置）
+
+
+
+
+
+Redis 通常已配置好：
+
+bash
+
+**复制***\*下载\**
+
+```
+sudo systemctl enable redis-stack-server
+sudo systemctl start redis-stack-server
+```
