@@ -102,7 +102,7 @@ PUBLIC_SITE_URL=https://github.com/AlanStaline/staline.online
 
 ```js
 export default defineConfig({
-  site: 'https://github.com/AlanStaline/staline.online'
+  site: 'http://www.staline.online'
 });
 ```
 
