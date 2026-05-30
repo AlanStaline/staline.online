@@ -1,9 +1,13 @@
 ---
-title: "Decap CMS 配置指南"
-date: 2024-02-20
-author: Your Name
-tags: [CMS, Decap CMS, Static Sites]
-description: "学习如何配置 Decap CMS 用于静态网站管理"
+title: AI agent后端算力模型架构设计
+date: 2026-05-30T20:51:00.000+08:00
+author: Alan
+tags:
+  - llama
+  - Redis
+  - RediSearch
+  - Semantic cache
+description: 仅用于个人尝试记录，处于实验摸索阶段。单实例模型 + 语义缓存混合架构部署，实现本地Ai agent对接。
 ---
 
 # Decap CMS 配置指南
