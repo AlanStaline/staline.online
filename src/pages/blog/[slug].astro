@@ -2,20 +2,33 @@
 import BlogPost from '../../layouts/BlogPost.astro';
 
 export async function getStaticPaths() {
-  const posts = await Astro.glob('../../data/articles/*.md');
-  return posts.map(post => {
-    const slug = post.file.split('/').pop()?.replace('.md', '') || '';
-    return {
-      params: { slug },
-      props: { post },
-    };
-  });
+  try {
+    // 修改：同时匹配 .md 和 .mdx 文件
+    const posts = await Astro.glob('../../data/articles/*.{md,mdx}');
+    return posts.map(post => {
+      // 修改：同时处理 .md 和 .mdx 扩展名
+      const slug = post.file.split(/[/\\]/).pop()?.replace(/\.(md|mdx)$/, '') || '';
+      return {
+        params: { slug },
+        props: { post },
+      };
+    });
+  } catch (error) {
+    // 如果没有找到任何文件，返回空数组
+    console.warn('No blog posts found');
+    return [];
+  }
 }
 
 const { post } = Astro.props;
 const { Content } = post;
 const { title, date, author, tags, description } = post.frontmatter;
 ---
-<BlogPost frontmatter={{ title, date, author, tags, description }}>
-  <Content />
-</BlogPost>
+
+{post ? (
+  <BlogPost frontmatter={{ title, date, author, tags, description }}>
+    <Content />
+  </BlogPost>
+) : (
+  <div>文章不存在</div>
+)}

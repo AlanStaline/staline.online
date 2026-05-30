@@ -2,9 +2,24 @@
 import Layout from '../layouts/Layout.astro';
 import config from '../data/config.json';
 
-const posts = await Astro.glob('../data/articles/*.md');
+// 最安全的方式：先声明空数组，再尝试赋值
+let posts = [];
+
+try {
+  const temp = await Astro.glob('../data/articles/*.{md,mdx}');
+  posts = Array.isArray(temp) ? temp : [];
+} catch {
+  posts = [];
+}
+
 const formatDate = (d: string) => new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+// 排序前确保 posts 是数组且不为空
+if (posts.length > 0) {
+  posts.sort((a, b) => new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime());
+}
 ---
+
 <Layout title={`博客 - ${config.site.title}`} description="技术博客文章列表">
   <div class="max-w-6xl mx-auto px-4 py-8">
     <header class="mb-12 animate-fade-in">
@@ -12,30 +27,37 @@ const formatDate = (d: string) => new Date(d).toLocaleDateString('zh-CN', { year
       <p class="text-text-muted text-lg">分享技术见解与开发经验</p>
     </header>
 
-    <div class="grid gap-6">
-      {posts.map((post, i) => {
-        const slug = post.file.split('/').pop()?.replace('.md', '');
-        return (
-          <article class="p-6 bg-surface-alt rounded-xl border border-border hover:shadow-lg transition animate-slide-up" style={`animation-delay: ${i * 0.1}s`}>
-            <div class="flex flex-wrap gap-2 mb-3">
-              {post.frontmatter.tags?.map((tag: string) => (
-                <span class="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full">{tag}</span>
-              ))}
-            </div>
-            <h2 class="text-2xl font-semibold mb-3 hover:text-primary transition cursor-pointer">
-              {post.frontmatter.title}
-            </h2>
-            <p class="text-text-muted mb-4">{post.frontmatter.description || ''}</p>
-            <div class="flex items-center justify-between">
-              <time class="text-sm text-text-muted">{formatDate(post.frontmatter.date)}</time>
-              <a href={`/blog/${slug}/`} class="text-primary hover:text-primary/80 transition text-sm font-medium">
-                阅读更多 →
-              </a>
-            </div>
-          </article>
-        );
-      })}
-    </div>
+    {posts.length === 0 ? (
+      <div class="text-center py-12">
+        <p class="text-text-muted">暂无文章，敬请期待...</p>
+      </div>
+    ) : (
+      <div class="grid gap-6">
+        {posts.map((post, i) => {
+          // 同时支持 .md 和 .mdx 扩展名
+          const slug = post.file.split(/[/\\]/).pop()?.replace(/\.(md|mdx)$/, '');
+          return (
+            <article class="p-6 bg-surface-alt rounded-xl border border-border hover:shadow-lg transition animate-slide-up" style={`animation-delay: ${i * 0.1}s`}>
+              <div class="flex flex-wrap gap-2 mb-3">
+                {post.frontmatter.tags?.map((tag: string) => (
+                  <span class="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full">{tag}</span>
+                ))}
+              </div>
+              <h2 class="text-2xl font-semibold mb-3 hover:text-primary transition cursor-pointer">
+                <a href={`/blog/${slug}/`} class="hover:text-primary">{post.frontmatter.title}</a>
+              </h2>
+              <p class="text-text-muted mb-4">{post.frontmatter.description || ''}</p>
+              <div class="flex items-center justify-between">
+                <time class="text-sm text-text-muted">{formatDate(post.frontmatter.date)}</time>
+                <a href={`/blog/${slug}/`} class="text-primary hover:text-primary/80 transition text-sm font-medium">
+                  阅读更多 →
+                </a>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    )}
 
     <nav class="mt-12 pt-8 border-t border-border">
       <a href="/" class="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition">
