@@ -10,22 +10,16 @@ tags:
 description: 仅用于个人尝试记录，处于实验摸索阶段。单实例模型 + 语义缓存混合架构部署，实现本地Ai agent对接。
 image: ""
 ---
-
-
 ```
-# 🚀 单实例模型 + 语义缓存混合架构部署手册
-**针对硬件**：Intel Xeon E5-2695 v2 + 80GB DDR3 
- **目标模型**：Qwen3.5-35B-A3B (或备用4B模型)  
-**核心架构**：Ai agent → 语义缓存(混合策略) → llama-server (单实例)
+🚀 单实例模型 + 语义缓存混合架构部署手册
+针对硬件：Intel Xeon E5-2695 v2 + 80GB DDR3 
+目标模型：Qwen3.5-35B-A3B (或备用4B模型)  
+核心架构：Ai agent → 语义缓存(混合策略) → llama-server (单实例)
 ```
-
-
 
 ## 🎯 架构概览
 
 ![架构概览](/images/system_architecture_diagram.png "架构概览")
-
-
 
 ### 核心优势
 
@@ -34,11 +28,7 @@ image: ""
 * ✅ **智能降级**：时间敏感或缓存未命中时无缝转发
 * ✅ **自动过期**：基于TTL的缓存清理，防止数据陈旧
 
-
-
 ## 📦 第一阶段：安装语义缓存依赖
-
-
 
 ### 1.0 源码编译
 
@@ -76,10 +66,7 @@ make -j16
 ls -la bin/llama-server
 ```
 
-
-
 ### 1.1 安装 Redis 和 RediSearch 模块
-
 
 **使用系统包管理器安装 Redis Stack（推荐）**
 
@@ -144,8 +131,6 @@ sudo systemctl disable redis-server
 sudo systemctl restart redis-stack-server
 ```
 
-
-
 ### 1.2 安装 Python 依赖
 
 ```
@@ -180,8 +165,6 @@ python -c "from redisvl.extensions.llmcache import SemanticCache; print('✅ red
 python -c "from sentence_transformers import SentenceTransformer; print('✅ sentence-transformers OK')"
 ```
 
-
-
 ### 1.3 下载语义向量模型
 
 ```
@@ -196,13 +179,7 @@ cd paraphrase-multilingual-MiniLM-L12-v2
 ls -lha paraphrase-multilingual-MiniLM-L12-v2/
 ```
 
-
-
-
-
 ## 🚀 第二阶段：部署语义缓存服务
-
-
 
 ### 2.1 创建语义缓存服务 `semantic_cache_service.py`
 
@@ -1251,11 +1228,7 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=CACHE_PORT, debug=False, threaded=True)
 ````
 
-
-
 ### 2.2 创建启动脚本 `start_semantic_cache.sh`
-
-
 
 ```
 #!/bin/bash
@@ -1289,8 +1262,6 @@ echo "✅ 语义缓存服务已启动 (PID: $PID)"
 echo "   端口: 9001"
 echo "   日志: tail -f ${LOG_DIR}/semantic_cache.log"
 ```
-
-
 
 ### 2.3 创建启动脚本 `start_llama_single.sh`
 
@@ -1375,8 +1346,6 @@ else
 fi
 ```
 
-
-
 ### 2.4 创建启动脚本 `stop_agent.sh`
 
 ```
@@ -1402,19 +1371,11 @@ pkill -f "llama-server" 2>/dev/null
 echo "✅ llama-server 已停止"
 ```
 
-
-
-
-
-##  第三阶段：修改 OpenClaw 配置
+## 第三阶段：修改 OpenClaw 配置
 
 Ai agent以OpenClaw为例
 
-
-
 ### 3.1 更新 OpenClaw 配置
-
-
 
 ```
 # 备份原配置
@@ -1471,13 +1432,7 @@ EOF
 
 **注意**：将 `192.168.1.100` 替换为你的实际服务器 IP。
 
-
-
 ## 📊 第四阶段：监控和统计
-
-
-
-
 
 ### 4.1 创建缓存监控脚本 `cache_monitor.sh`
 
@@ -1518,19 +1473,9 @@ while true; do
 done
 ```
 
-
-
-
-
 ## 🚀 第五阶段：一键启动全流程
 
-
-
-
-
 ### 5.1 更新主启动脚本 `start_all.sh`
-
-
 
 ```
 #!/bin/bash
@@ -1621,12 +1566,7 @@ echo "   - 实时监控: ./cache_monitor.sh"
 echo ""
 echo "🛑 停止服务: ./stop_all.sh"
 echo "================================================"
-
 ```
-
-
-
-
 
 ### 5.2 创建停止脚本 `stop_all.sh`
 
@@ -1656,27 +1596,13 @@ pkill -f "cache_monitor.sh"
 echo "✅ 所有服务已停止"
 ```
 
-
-
 ## 🚀 第六阶段：优化
-
-
-
-
 
 ### 6.1 使用 systemd 服务保证开机启动
 
-
-
 为每个服务创建独立的 systemd 单元文件。
 
-
-
 #### 1. 创建 Redis 服务（如果还没配置）
-
-
-
-
 
 Redis 通常已配置好：
 
@@ -1688,8 +1614,6 @@ bash
 sudo systemctl enable redis-stack-server
 sudo systemctl start redis-stack-server
 ```
-
-
 
 #### 2. 创建 llama-server 服务
 
@@ -1722,10 +1646,6 @@ WantedBy=multi-user.target
 EOF
 ```
 
-
-
-
-
 #### 3. 创建语义缓存服务
 
 bash
@@ -1754,10 +1674,6 @@ RestartSec=30
 WantedBy=multi-user.target
 EOF
 ```
-
-
-
-
 
 #### 4. 启用服务
 
