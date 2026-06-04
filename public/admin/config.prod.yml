@@ -25,11 +25,6 @@ collections:
           label: "Body", 
           name: "body", 
           widget: "markdown",
-          default: |-
-            import Bilibili from '../../components/Bilibili.astro';
-
-            # 开始写作...
-
-            <Bilibili bvid="" />
+          default: "import Bilibili from '../../components/Bilibili.astro';\n\n# 开始写作...\n\n<Bilibili bvid=\"\" />\n"
         }
       - { label: "Featured Image", name: "image", widget: "image", required: false }
