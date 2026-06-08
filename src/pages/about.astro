@@ -16,7 +16,7 @@ import config from '../data/config.json';
       <section class="p-6 bg-surface-alt rounded-xl border border-border">
         <h2 class="text-2xl font-semibold mb-4">关于我</h2>
         <p class="text-text-muted leading-relaxed">
-          热爱技术，专注于 Web 开发和系统架构。喜欢探索新技术，分享学习心得。
+          热爱技术，喜欢探索新技术，分享学习心得。
           致力于构建高性能、可维护的软件系统。
         </p>
       </section>
@@ -24,7 +24,7 @@ import config from '../data/config.json';
       <section class="p-6 bg-surface-alt rounded-xl border border-border">
         <h2 class="text-2xl font-semibold mb-4">技术栈</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Go', 'Docker', 'AWS'].map(tech => (
+          {['JavaScript', 'TypeScript', 'Node.js', 'Python', 'Hadoop', 'Docker', 'Agent', 'LLM'].map(tech => (
             <div key={tech} class="p-3 bg-surface rounded-lg border border-border text-center">
               <span class="text-sm font-medium">{tech}</span>
             </div>
@@ -39,17 +39,9 @@ import config from '../data/config.json';
             <i class="fab fa-github text-2xl text-primary"></i>
             <span>GitHub</span>
           </a>
-          <a href={config.social.twitter} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
-            <i class="fab fa-twitter text-2xl text-primary"></i>
-            <span>Twitter</span>
-          </a>
           <a href={config.social.email} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
             <i class="fas fa-envelope text-2xl text-primary"></i>
             <span>Email</span>
-          </a>
-          <a href={config.social.linkedin} class="flex items-center gap-3 p-4 bg-surface rounded-lg border border-border hover:shadow-md transition">
-            <i class="fab fa-linkedin text-2xl text-primary"></i>
-            <span>LinkedIn</span>
           </a>
         </div>
       </section>

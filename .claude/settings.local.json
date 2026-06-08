@@ -1,12 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)",
-      "Bash(mkdir -p \"D:/Soft_Data/VSCodeData/Workspaces/staline.online/.claude\")",
-      "mcp__Claude_Preview__preview_start",
-      "Bash(npm run *)",
-      "Bash(node -e ' *)",
-      "Bash(node -e \"var c=require\\('fs'\\).readFileSync\\('d:/Soft_Data/VSCodeData/Workspaces/staline.online/src/pages/index.astro','utf8'\\);console.log\\('Has carousel:',c.includes\\('project-carousel'\\)\\);console.log\\('Has REPLACED:',c.includes\\('REPLACED'\\)\\);console.log\\('Length:',c.length\\)\")"
+      "Bash(*)"
     ]
   }
 }
