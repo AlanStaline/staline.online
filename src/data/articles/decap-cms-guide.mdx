@@ -1697,3 +1697,13 @@ sudo systemctl start semantic-cache
 sudo systemctl status llama-server
 sudo systemctl status semantic-cache
 ```
+
+实验效果：
+看起来并不理想，前端agent使用的openclaw，系统提示词需要附带环境、工具、技能，造成系统提示词过大，本地的服务器性能处理不过来。手动精简系统提示词，又达不到预期的效果……
+
+![后台缓存](/images/semantic_cache.png)
+![后台缓存1](/images/semantic_cache_1.png)
+![后台缓存2](/images/semantic_cache_2.png)
+![处理超时](/images/semantic_cache_timeout.png)
+
+

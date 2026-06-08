@@ -1,0 +1,16 @@
+{
+  "slug": "personal-blog",
+  "featured": true,
+  "title": "personal_blog",
+  "description": "基于 Astro + Tailwind CSS 构建的现代化技术博客，静态页面，自带后台管理，可以直接使用github pages部署托管。\n",
+  "images": [
+    "/images/github_blog.png"
+  ],
+  "tags": [
+    "Astro",
+    "Tailwind CSS",
+    "Markdown"
+  ],
+  "github": "https://github.com/AlanStaline/staline.online",
+  "demo": "https://www.staline.online"
+}

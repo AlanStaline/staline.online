@@ -28,3 +28,20 @@ collections:
           default: "import Bilibili from '../../components/Bilibili.astro';\n\n# 开始写作...\n\n<Bilibili bvid=\"\" />\n"
         }
       - { label: "Featured Image", name: "image", widget: "image", required: false }
+
+  - label: "Projects"
+    name: "projects"
+    folder: "src/data/projects"
+    extension: json
+    format: json
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Images", name: "images", widget: "list", required: false, field: { label: "Image", name: "image", widget: "image" } }
+      - { label: "Tags", name: "tags", widget: "list", required: false }
+      - { label: "GitHub URL", name: "github", widget: "string", required: false }
+      - { label: "Demo URL", name: "demo", widget: "string", required: false }
+      - { label: "Featured", name: "featured", widget: "boolean", default: false }
+      - { label: "Slug", name: "slug", widget: "string" }

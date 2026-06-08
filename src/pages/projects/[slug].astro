@@ -1,0 +1,87 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  try {
+    const projects = await Astro.glob('../../data/projects/*.json');
+    return projects.map(p => ({
+      params: { slug: p.default.slug || '' },
+      props: { project: p.default },
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const { project } = Astro.props;
+const { title, description, images, tags, github, demo } = project || {};
+const ensureUrl = (url: string) => /^https?:\/\//.test(url) ? url : `https://${url}`;
+const imageList: string[] = images || [];
+---
+
+{project ? (
+  <Layout title={title} description={description || ''}>
+    <div class="project-detail max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+      <nav class="mb-8">
+        <a href="/projects/" class="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition">
+          <i class="fas fa-arrow-left"></i>
+          返回项目列表
+        </a>
+      </nav>
+
+      <header class="mb-8">
+        <div class="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl mb-6 flex items-center justify-center overflow-hidden">
+          {imageList.length > 0 ? (
+            <img src={imageList[0]} alt={title} class="w-full h-full object-cover" />
+          ) : (
+            <i class="fas fa-code text-6xl text-primary/40"></i>
+          )}
+        </div>
+
+        {imageList.length > 1 && (
+          <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {imageList.map((img: string, i: number) => (
+              <img src={img} alt={`${title} ${i + 1}`} class="w-20 h-14 object-cover rounded border border-border hover:border-primary transition cursor-pointer flex-shrink-0" />
+            ))}
+          </div>
+        )}
+
+        <h1 class="text-4xl font-bold mb-4">{title}</h1>
+        {description && (
+          <p class="text-lg text-text-muted mb-4">{description}</p>
+        )}
+        {tags && tags.length > 0 && (
+          <div class="flex flex-wrap gap-2 mb-6">
+            {tags.map((tag: string) => (
+              <span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">{tag}</span>
+            ))}
+          </div>
+        )}
+        <div class="flex gap-4">
+          {github && (
+            <a href={ensureUrl(github)} target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 px-6 py-2 bg-surface-alt border border-border rounded-lg hover:border-primary transition">
+              <i class="fab fa-github text-lg"></i>
+              GitHub
+            </a>
+          )}
+          {demo && (
+            <a href={ensureUrl(demo)} target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition">
+              <i class="fas fa-external-link-alt"></i>
+              在线演示
+            </a>
+          )}
+        </div>
+      </header>
+    </div>
+  </Layout>
+) : (
+  <Layout title="项目不存在">
+    <div class="max-w-4xl mx-auto px-4 py-16 text-center">
+      <i class="fas fa-folder-open text-6xl text-text-muted mb-4"></i>
+      <h1 class="text-2xl font-bold mb-2">项目不存在</h1>
+      <a href="/projects/" class="text-primary hover:text-primary/80 transition">返回项目列表</a>
+    </div>
+  </Layout>
+)}

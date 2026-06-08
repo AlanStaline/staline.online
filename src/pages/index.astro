@@ -1,9 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import config from '../data/config.json';
-import projectsData from '../data/projects.json';
 
-// 修改1：添加错误处理，同时支持 .md 和 .mdx
+const projectsData = (await Astro.glob('../data/projects/*.json')).map(p => p.default);
+
 let allPosts = [];
 try {
   const temp = await Astro.glob('../data/articles/*.{md,mdx}');
@@ -12,7 +12,6 @@ try {
   allPosts = [];
 }
 
-// 修改2：排序前确保有文章
 if (allPosts.length > 0) {
   allPosts.sort((a, b) => new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime());
 }
@@ -21,7 +20,6 @@ const recentPosts = allPosts.slice(0, 2);
 const formatDate = (d: string) => new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 const featuredProjects = projectsData.filter(p => p.featured);
 
-// 修改3：辅助函数提取 slug
 const getSlug = (file: string) => file.split(/[/\\]/).pop()?.replace(/\.(md|mdx)$/, '') || '';
 ---
 <Layout title={config.site.title} description={config.site.description}>
@@ -82,14 +80,38 @@ const getSlug = (file: string) => file.split(/[/\\]/).pop()?.replace(/\.(md|mdx)
         <h2 class="text-3xl font-bold mb-8">精选项目</h2>
         <div class="grid md:grid-cols-2 gap-6">
           {featuredProjects.map((project, i) => (
-            <div class="p-6 bg-surface rounded-xl border border-border hover:shadow-lg transition animate-slide-up" style={`animation-delay: ${i * 0.1}s`}>
-              <h3 class="text-xl font-semibold mb-2">{project.title}</h3>
-              <p class="text-text-muted mb-3">{project.description}</p>
-              <div class="flex gap-2">
-                {project.tags.map((tag: string) => (
-                  <span class="text-xs px-2 py-1 bg-secondary/10 text-secondary rounded">{tag}</span>
-                ))}
-              </div>
+            <div class="bg-surface rounded-xl border border-border hover:shadow-lg transition animate-slide-up overflow-hidden" style={`animation-delay: ${i * 0.1}s`}>
+              {project.images?.length > 0 ? (
+                <div class="project-carousel relative aspect-video bg-surface-alt" data-carousel-id={`carousel-${i}`}>
+                  {project.images.map((img: string, j: number) => (
+                    <img src={img} alt={`${project.title} ${j + 1}`} class={`carousel-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${j === 0 ? 'opacity-100' : 'opacity-0'}`} data-index={j} />
+                  ))}
+                  {project.images.length > 1 && (
+                    <>
+                      <button class="carousel-prev absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60 transition z-10" data-action="prev"><i class="fas fa-chevron-left text-xs"></i></button>
+                      <button class="carousel-next absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 text-white rounded-full flex items-center justify-center hover:bg-black/60 transition z-10" data-action="next"><i class="fas fa-chevron-right text-xs"></i></button>
+                      <div class="carousel-dots absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        {project.images.map((_: string, j: number) => (
+                          <span class={`carousel-dot w-2 h-2 rounded-full transition-colors ${j === 0 ? 'bg-white' : 'bg-white/40'}`} data-dot={j}></span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div class="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                  <i class="fas fa-code text-5xl text-primary/40"></i>
+                </div>
+              )}
+              <a href={`/projects/${project.slug}/`} class="block p-6">
+                <h3 class="text-xl font-semibold mb-2">{project.title}</h3>
+                <p class="text-text-muted mb-3">{project.description}</p>
+                <div class="flex gap-2">
+                  {project.tags.map((tag: string) => (
+                    <span class="text-xs px-2 py-1 bg-secondary/10 text-secondary rounded">{tag}</span>
+                  ))}
+                </div>
+              </a>
             </div>
           ))}
         </div>
@@ -97,3 +119,44 @@ const getSlug = (file: string) => file.split(/[/\\]/).pop()?.replace(/\.(md|mdx)
     </section>
   </div>
 </Layout>
+
+<script>
+  document.querySelectorAll('.project-carousel').forEach(carousel => {
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dots = carousel.querySelectorAll('.carousel-dot');
+    let current = 0;
+    let timer: ReturnType<typeof setInterval>;
+
+    function goTo(index: number) {
+      slides.forEach((s, i) => {
+        (s as HTMLElement).classList.toggle('opacity-100', i === index);
+        (s as HTMLElement).classList.toggle('opacity-0', i !== index);
+      });
+      dots.forEach((d, i) => {
+        d.classList.toggle('bg-white', i === index);
+        d.classList.toggle('bg-white/40', i !== index);
+      });
+      current = index;
+    }
+
+    carousel.querySelector('[data-action="prev"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      goTo((current - 1 + slides.length) % slides.length);
+      resetTimer();
+    });
+    carousel.querySelector('[data-action="next"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      goTo((current + 1) % slides.length);
+      resetTimer();
+    });
+    dots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        goTo(Number((dot as HTMLElement).dataset.dot));
+        resetTimer();
+      });
+    });
+
+    function resetTimer() { clearInterval(timer); timer = setInterval(() => goTo((current + 1) % slides.length), 4000); }
+    if (slides.length > 1) timer = setInterval(() => goTo((current + 1) % slides.length), 4000);
+  });
+</script>
